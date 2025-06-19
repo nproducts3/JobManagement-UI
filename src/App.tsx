@@ -17,7 +17,9 @@ import SetPassword from "./pages/auth/SetPassword";
 import CreateUser from "./pages/CreateUser";
 import JobSeekerDashboard from "./pages/dashboard/JobSeekerDashboard";
 import EmployerDashboard from "./pages/dashboard/EmployerDashboard";
+import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import JobSeekerSettings from "./pages/settings/JobSeekerSettings";
 import PostJob from "./pages/PostJob";
 import NotFound from "./pages/NotFound";
 
@@ -42,7 +44,9 @@ const App = () => (
             <Route path="/jobs/:id" element={<Layout><JobDetails /></Layout>} />
             <Route path="/dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/employer-dashboard" element={<Layout><EmployerDashboard /></Layout>} />
+            <Route path="/employee-dashboard" element={<Layout><EmployeeDashboard /></Layout>} />
             <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
+            <Route path="/settings" element={<Layout><JobSeekerSettings /></Layout>} />
             <Route path="/post-job" element={<Layout><PostJob /></Layout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

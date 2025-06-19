@@ -22,6 +22,7 @@ export const Header = () => {
   const getDashboardLink = () => {
     if (role?.role_name === 'ROLE_SUPER_ADMIN') return '/admin-dashboard';
     if (role?.role_name === 'ROLE_EMPLOYER') return '/employer-dashboard';
+    if (role?.role_name === 'ROLE_EMPLOYEE') return '/employee-dashboard';
     return '/dashboard';
   };
 
@@ -53,6 +54,11 @@ export const Header = () => {
                   <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
                     Dashboard
                   </DropdownMenuItem>
+                  {role?.role_name === 'ROLE_JOBSEEKER' && (
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      Settings
+                    </DropdownMenuItem>
+                  )}
                   {role?.role_name === 'ROLE_SUPER_ADMIN' && (
                     <DropdownMenuItem onClick={() => navigate('/create-user')}>
                       Create User

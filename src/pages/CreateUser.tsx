@@ -14,11 +14,11 @@ const CreateUser = () => {
     username: '',
     email: '',
     password: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    role_id: '',
-    organization_id: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    roleId: '',
+    organizationId: '',
   });
   const [roles, setRoles] = useState<Role[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -41,9 +41,16 @@ const CreateUser = () => {
       if (response.ok) {
         const data = await response.json();
         setRoles(data);
+      } else {
+        console.error('Failed to fetch roles:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch roles:', error);
+      toast({
+        title: "Warning",
+        description: "Could not load roles. Using default organization.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -57,9 +64,22 @@ const CreateUser = () => {
       if (response.ok) {
         const data = await response.json();
         setOrganizations(data);
+        
+        // Set default organization
+        const defaultOrg = data.find((org: Organization) => org.name === 'Default Organization');
+        if (defaultOrg) {
+          setFormData(prev => ({ ...prev, organizationId: defaultOrg.id }));
+        }
+      } else {
+        console.error('Failed to fetch organizations:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch organizations:', error);
+      toast({
+        title: "Warning",
+        description: "Could not load organizations. Please select manually.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -84,12 +104,14 @@ const CreateUser = () => {
         });
         navigate('/admin-dashboard');
       } else {
-        throw new Error('Failed to create user');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create user');
       }
     } catch (error) {
+      console.error('Create user error:', error);
       toast({
         title: "Error",
-        description: "Failed to create user. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -114,22 +136,22 @@ const CreateUser = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input
-                  id="first_name"
+                  id="firstName"
                   placeholder="First name"
-                  value={formData.first_name}
-                  onChange={(e) => handleChange('first_name', e.target.value)}
+                  value={formData.firstName}
+                  onChange={(e) => handleChange('firstName', e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
+                <Label htmlFor="lastName">Last Name</Label>
                 <Input
-                  id="last_name"
+                  id="lastName"
                   placeholder="Last name"
-                  value={formData.last_name}
-                  onChange={(e) => handleChange('last_name', e.target.value)}
+                  value={formData.lastName}
+                  onChange={(e) => handleChange('lastName', e.target.value)}
                   required
                 />
               </div>
@@ -171,19 +193,19 @@ const CreateUser = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone_number">Phone Number</Label>
+              <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input
-                id="phone_number"
+                id="phoneNumber"
                 type="tel"
                 placeholder="Phone number"
-                value={formData.phone_number}
-                onChange={(e) => handleChange('phone_number', e.target.value)}
+                value={formData.phoneNumber}
+                onChange={(e) => handleChange('phoneNumber', e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select onValueChange={(value) => handleChange('role_id', value)}>
+              <Select onValueChange={(value) => handleChange('roleId', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -199,7 +221,10 @@ const CreateUser = () => {
 
             <div className="space-y-2">
               <Label htmlFor="organization">Organization</Label>
-              <Select onValueChange={(value) => handleChange('organization_id', value)}>
+              <Select 
+                value={formData.organizationId}
+                onValueChange={(value) => handleChange('organizationId', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select organization" />
                 </SelectTrigger>

@@ -13,11 +13,11 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    role_id: 'ROLE_JOBSEEKER', // Default to job seeker role
-    organization_id: 'default-org-id', // You'll need to set a default organization
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    roleId: 'ROLE_JOBSEEKER',
+    organizationId: 'default-org-id',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
@@ -51,7 +51,6 @@ const Register = () => {
   };
 
   const handleGoogleSignUp = () => {
-    // Google Sign-Up implementation would go here
     toast({
       title: "Coming Soon",
       description: "Google Sign-Up will be implemented with backend integration.",
@@ -71,22 +70,22 @@ const Register = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input
-                  id="first_name"
+                  id="firstName"
                   placeholder="First name"
-                  value={formData.first_name}
-                  onChange={(e) => handleChange('first_name', e.target.value)}
+                  value={formData.firstName}
+                  onChange={(e) => handleChange('firstName', e.target.value)}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
+                <Label htmlFor="lastName">Last Name</Label>
                 <Input
-                  id="last_name"
+                  id="lastName"
                   placeholder="Last name"
-                  value={formData.last_name}
-                  onChange={(e) => handleChange('last_name', e.target.value)}
+                  value={formData.lastName}
+                  onChange={(e) => handleChange('lastName', e.target.value)}
                   required
                 />
               </div>
@@ -128,13 +127,13 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone_number">Phone Number</Label>
+              <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input
-                id="phone_number"
+                id="phoneNumber"
                 type="tel"
                 placeholder="Your phone number"
-                value={formData.phone_number}
-                onChange={(e) => handleChange('phone_number', e.target.value)}
+                value={formData.phoneNumber}
+                onChange={(e) => handleChange('phoneNumber', e.target.value)}
               />
             </div>
 

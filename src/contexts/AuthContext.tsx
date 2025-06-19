@@ -7,10 +7,21 @@ interface AuthContextType {
   role: Role | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: Partial<User>) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+interface RegisterData {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  roleId: string;
+  organizationId: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +46,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      // Fetch user data when token exists
       fetchUserData();
     } else {
       setIsLoading(false);
@@ -54,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userData = await response.json();
         setUser(userData);
         
-        // Fetch role data
         const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.role_id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -77,7 +86,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (email: string, password: string) => {
-    // Demo login logic
     const demoUsers = {
       'jobseeker@demo.com': {
         id: 'demo-jobseeker-id',
@@ -108,6 +116,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role_id: 'ROLE_EMPLOYER',
         organization_id: 'demo-org-id',
         phone_number: '+1234567892'
+      },
+      'employee@demo.com': {
+        id: 'demo-employee-id',
+        username: 'employee_demo',
+        email: 'employee@demo.com',
+        first_name: 'Mike',
+        last_name: 'Employee',
+        role_id: 'ROLE_EMPLOYEE',
+        organization_id: 'demo-org-id',
+        phone_number: '+1234567893'
       }
     };
 
@@ -129,6 +147,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role_name: 'ROLE_EMPLOYER',
         role_description: 'Employer Role',
         role_permission: 'WRITE'
+      },
+      'ROLE_EMPLOYEE': {
+        id: 'ROLE_EMPLOYEE',
+        role_name: 'ROLE_EMPLOYEE',
+        role_description: 'Employee Role',
+        role_permission: 'READ'
       }
     };
 
@@ -142,7 +166,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    // Try real backend login
     try {
       const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
@@ -163,29 +186,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(authToken);
       setUser(userData);
     } catch (error) {
-      throw new Error('Invalid credentials. Try demo emails: jobseeker@demo.com, admin@demo.com, or employer@demo.com with password: demo123');
+      throw new Error('Invalid credentials. Try demo emails: jobseeker@demo.com, admin@demo.com, employer@demo.com, or employee@demo.com with password: demo123');
     }
   };
 
-  const register = async (userData: Partial<User>) => {
-    // Map frontend field names to backend field names
-    const backendUserData = {
-      username: userData.username,
-      email: userData.email,
-      password: userData.password,
-      firstName: userData.first_name, // Map to backend field name
-      lastName: userData.last_name,   // Map to backend field name
-      phoneNumber: userData.phone_number, // Map to backend field name
-      role_id: userData.role_id || 'ROLE_JOBSEEKER',
-      organization_id: userData.organization_id || 'default-org-id',
-    };
-
+  const register = async (userData: RegisterData) => {
     const response = await fetch('http://localhost:8080/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(backendUserData),
+      body: JSON.stringify(userData),
     });
 
     if (!response.ok) {

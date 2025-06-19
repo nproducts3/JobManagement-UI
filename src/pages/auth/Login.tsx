@@ -45,7 +45,6 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = () => {
-    // Google Sign-In implementation would go here
     toast({
       title: "Coming Soon",
       description: "Google Sign-In will be implemented with backend integration.",
@@ -62,7 +61,6 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Demo Login Options */}
           <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-sm font-medium text-blue-900">Demo Login Credentials</h3>
             <div className="space-y-2">
@@ -82,6 +80,16 @@ const Login = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => handleDemoLogin('employer@demo.com')}
+                >
+                  Use Demo
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">Employee</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDemoLogin('employee@demo.com')}
                 >
                   Use Demo
                 </Button>

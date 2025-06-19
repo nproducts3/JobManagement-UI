@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +18,7 @@ import { jobSeekerService } from '@/services/jobSeekerService';
 
 const JobSeekerDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<JobSeeker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -31,7 +33,6 @@ const JobSeekerDashboard = () => {
       if (user?.id) {
         const data = await jobSeekerService.getByUserId(user.id);
         if (data.length > 0) {
-          // Convert JobSeekerData to JobSeeker
           const jobSeekerData = data[0];
           const jobSeeker: JobSeeker = {
             id: jobSeekerData.id || '',
@@ -64,7 +65,6 @@ const JobSeekerDashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-3xl font-bold">Job Seeker Dashboard</h1>
@@ -73,11 +73,11 @@ const JobSeekerDashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => navigate('/settings')}>
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
-            <Button>Find Jobs</Button>
+            <Button onClick={() => navigate('/jobs')}>Find Jobs</Button>
           </div>
         </div>
 
