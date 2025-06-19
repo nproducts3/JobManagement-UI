@@ -6,15 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { JobSeekerSkill } from '@/types/api';
 import { Plus, X } from 'lucide-react';
+import { skillsService, SkillData } from '@/services/skillsService';
 
 interface SkillsTabProps {
   jobSeekerId?: string;
 }
 
 export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
-  const [skills, setSkills] = useState<JobSeekerSkill[]>([]);
+  const [skills, setSkills] = useState<SkillData[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -27,17 +27,15 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
   const fetchSkills = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/job-seeker-skills?job_seeker_id=${jobSeekerId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSkills(data);
-      }
+      const data = await skillsService.getByJobSeekerId(jobSeekerId!);
+      setSkills(data);
     } catch (error) {
       console.error('Failed to fetch skills:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load skills. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -48,29 +46,18 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/job-seeker-skills', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          job_seeker_id: jobSeekerId,
-          skill_name: newSkill.trim(),
-        }),
-      });
+      const skillData: SkillData = {
+        job_seeker_id: jobSeekerId,
+        skill_name: newSkill.trim(),
+      };
 
-      if (response.ok) {
-        const skill = await response.json();
-        setSkills(prev => [...prev, skill]);
-        setNewSkill('');
-        toast({
-          title: "Success",
-          description: "Skill added successfully.",
-        });
-      } else {
-        throw new Error('Failed to add skill');
-      }
+      const skill = await skillsService.create(skillData);
+      setSkills(prev => [...prev, skill]);
+      setNewSkill('');
+      toast({
+        title: "Success",
+        description: "Skill added successfully.",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -84,22 +71,12 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
   const removeSkill = async (skillId: string) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/job-seeker-skills/${skillId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      await skillsService.delete(skillId);
+      setSkills(prev => prev.filter(skill => skill.id !== skillId));
+      toast({
+        title: "Success",
+        description: "Skill removed successfully.",
       });
-
-      if (response.ok) {
-        setSkills(prev => prev.filter(skill => skill.id !== skillId));
-        toast({
-          title: "Success",
-          description: "Skill removed successfully.",
-        });
-      } else {
-        throw new Error('Failed to remove skill');
-      }
     } catch (error) {
       toast({
         title: "Error",
@@ -147,7 +124,7 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
                     variant="ghost"
                     size="sm"
                     className="h-auto p-0 ml-2 hover:bg-transparent"
-                    onClick={() => removeSkill(skill.id)}
+                    onClick={() => removeSkill(skill.id!)}
                   >
                     <X className="h-3 w-3" />
                   </Button>

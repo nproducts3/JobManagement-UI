@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { JobSeeker } from '@/types/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { jobSeekerService } from '@/services/jobSeekerService';
 
 interface ProfileTabProps {
   profile: JobSeeker | null;
@@ -46,30 +47,19 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
     setIsLoading(true);
 
     try {
-      const url = profile ? `/api/job-seekers/${profile.id}` : '/api/job-seekers';
-      const method = profile ? 'PUT' : 'POST';
+      let updatedProfile: JobSeeker;
       
-      const payload = profile ? formData : { ...formData, user_id: user.id };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const updatedProfile = await response.json();
-        onUpdate(updatedProfile);
-        toast({
-          title: "Success",
-          description: "Profile updated successfully.",
-        });
+      if (profile) {
+        updatedProfile = await jobSeekerService.update(profile.id, formData);
       } else {
-        throw new Error('Failed to update profile');
+        updatedProfile = await jobSeekerService.create({ ...formData, user_id: user.id });
       }
+      
+      onUpdate(updatedProfile);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
     } catch (error) {
       toast({
         title: "Error",
