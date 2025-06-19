@@ -29,23 +29,12 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      await register(formData);
+      toast({
+        title: "Success",
+        description: "Account created successfully. Please log in.",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Account created successfully. Please log in.",
-        });
-        navigate('/login');
-      } else {
-        throw new Error('Registration failed');
-      }
+      navigate('/login');
     } catch (error) {
       toast({
         title: "Error",

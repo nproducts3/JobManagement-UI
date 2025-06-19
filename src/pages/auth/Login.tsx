@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -30,12 +31,17 @@ const Login = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Invalid email or password.",
+        description: error instanceof Error ? error.message : "Login failed",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDemoLogin = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('demo123');
   };
 
   const handleGoogleSignIn = () => {
@@ -56,6 +62,46 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Demo Login Options */}
+          <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-900">Demo Login Credentials</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">Job Seeker</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDemoLogin('jobseeker@demo.com')}
+                >
+                  Use Demo
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">Employer</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDemoLogin('employer@demo.com')}
+                >
+                  Use Demo
+                </Button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">Admin</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDemoLogin('admin@demo.com')}
+                >
+                  Use Demo
+                </Button>
+              </div>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              Password: demo123
+            </Badge>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

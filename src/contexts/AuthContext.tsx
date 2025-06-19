@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/users/me', {
+      const response = await fetch('http://localhost:8080/api/users/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData);
         
         // Fetch role data
-        const roleResponse = await fetch(`/api/roles/${userData.role_id}`, {
+        const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.role_id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -77,33 +77,115 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Demo login logic
+    const demoUsers = {
+      'jobseeker@demo.com': {
+        id: 'demo-jobseeker-id',
+        username: 'jobseeker_demo',
+        email: 'jobseeker@demo.com',
+        first_name: 'John',
+        last_name: 'Seeker',
+        role_id: 'ROLE_JOBSEEKER',
+        organization_id: 'demo-org-id',
+        phone_number: '+1234567890'
       },
-      body: JSON.stringify({ email, password }),
-    });
+      'admin@demo.com': {
+        id: 'demo-admin-id',
+        username: 'admin_demo',
+        email: 'admin@demo.com',
+        first_name: 'Admin',
+        last_name: 'User',
+        role_id: 'ROLE_SUPER_ADMIN',
+        organization_id: 'demo-org-id',
+        phone_number: '+1234567891'
+      },
+      'employer@demo.com': {
+        id: 'demo-employer-id',
+        username: 'employer_demo',
+        email: 'employer@demo.com',
+        first_name: 'Jane',
+        last_name: 'Employer',
+        role_id: 'ROLE_EMPLOYER',
+        organization_id: 'demo-org-id',
+        phone_number: '+1234567892'
+      }
+    };
 
-    if (!response.ok) {
-      throw new Error('Login failed');
+    const demoRoles = {
+      'ROLE_JOBSEEKER': {
+        id: 'ROLE_JOBSEEKER',
+        role_name: 'ROLE_JOBSEEKER',
+        role_description: 'Job Seeker Role',
+        role_permission: 'READ'
+      },
+      'ROLE_SUPER_ADMIN': {
+        id: 'ROLE_SUPER_ADMIN',
+        role_name: 'ROLE_SUPER_ADMIN',
+        role_description: 'Super Admin Role',
+        role_permission: 'ALL'
+      },
+      'ROLE_EMPLOYER': {
+        id: 'ROLE_EMPLOYER',
+        role_name: 'ROLE_EMPLOYER',
+        role_description: 'Employer Role',
+        role_permission: 'WRITE'
+      }
+    };
+
+    const demoUser = demoUsers[email as keyof typeof demoUsers];
+    if (demoUser && password === 'demo123') {
+      const mockToken = `demo-token-${Date.now()}`;
+      localStorage.setItem('token', mockToken);
+      setToken(mockToken);
+      setUser(demoUser as User);
+      setRole(demoRoles[demoUser.role_id as keyof typeof demoRoles] as Role);
+      return;
     }
 
-    const data = await response.json();
-    const { token: authToken, user: userData } = data;
-    
-    localStorage.setItem('token', authToken);
-    setToken(authToken);
-    setUser(userData);
+    // Try real backend login
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      const { token: authToken, user: userData } = data;
+      
+      localStorage.setItem('token', authToken);
+      setToken(authToken);
+      setUser(userData);
+    } catch (error) {
+      throw new Error('Invalid credentials. Try demo emails: jobseeker@demo.com, admin@demo.com, or employer@demo.com with password: demo123');
+    }
   };
 
   const register = async (userData: Partial<User>) => {
-    const response = await fetch('/api/users', {
+    // Map frontend field names to backend field names
+    const backendUserData = {
+      username: userData.username,
+      email: userData.email,
+      password: userData.password,
+      firstName: userData.first_name, // Map to backend field name
+      lastName: userData.last_name,   // Map to backend field name
+      phoneNumber: userData.phone_number, // Map to backend field name
+      role_id: userData.role_id || 'ROLE_JOBSEEKER',
+      organization_id: userData.organization_id || 'default-org-id',
+    };
+
+    const response = await fetch('http://localhost:8080/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(backendUserData),
     });
 
     if (!response.ok) {
