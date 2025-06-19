@@ -13,6 +13,7 @@ import { ResumeTab } from '@/components/dashboard/ResumeTab';
 import { User, FileText, Award, GraduationCap, Briefcase, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { JobSeeker } from '@/types/api';
+import { jobSeekerService } from '@/services/jobSeekerService';
 
 const JobSeekerDashboard = () => {
   const { user } = useAuth();
@@ -27,15 +28,22 @@ const JobSeekerDashboard = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch(`/api/job-seekers?user_id=${user?.id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
+      if (user?.id) {
+        const data = await jobSeekerService.getByUserId(user.id);
         if (data.length > 0) {
-          setProfile(data[0]);
+          // Convert JobSeekerData to JobSeeker
+          const jobSeekerData = data[0];
+          const jobSeeker: JobSeeker = {
+            id: jobSeekerData.id || '',
+            user_id: jobSeekerData.user_id,
+            first_name: jobSeekerData.first_name,
+            last_name: jobSeekerData.last_name,
+            location: jobSeekerData.location,
+            phone: jobSeekerData.phone,
+            desired_salary: jobSeekerData.desired_salary,
+            preferred_job_types: jobSeekerData.preferred_job_types,
+          };
+          setProfile(jobSeeker);
         }
       }
     } catch (error) {

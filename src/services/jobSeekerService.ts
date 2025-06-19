@@ -33,7 +33,17 @@ export const jobSeekerService = {
     return response.json();
   },
 
-  create: async (data: JobSeekerData): Promise<JobSeekerData> => {
+  getByUserId: async (userId: string): Promise<JobSeekerData[]> => {
+    const response = await fetch(`${BASE_URL}/job-seekers?user_id=${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch job seeker by user ID');
+    return response.json();
+  },
+
+  create: async (data: Omit<JobSeekerData, 'id'>): Promise<JobSeekerData> => {
     const response = await fetch(`${BASE_URL}/job-seekers`, {
       method: 'POST',
       headers: {
@@ -46,7 +56,7 @@ export const jobSeekerService = {
     return response.json();
   },
 
-  update: async (id: string, data: JobSeekerData): Promise<JobSeekerData> => {
+  update: async (id: string, data: Partial<JobSeekerData>): Promise<JobSeekerData> => {
     const response = await fetch(`${BASE_URL}/job-seekers/${id}`, {
       method: 'PUT',
       headers: {

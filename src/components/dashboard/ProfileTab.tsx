@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { JobSeeker } from '@/types/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { jobSeekerService } from '@/services/jobSeekerService';
+import { jobSeekerService, JobSeekerData } from '@/services/jobSeekerService';
 
 interface ProfileTabProps {
   profile: JobSeeker | null;
@@ -47,15 +47,30 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
     setIsLoading(true);
 
     try {
-      let updatedProfile: JobSeeker;
+      let updatedProfile: JobSeekerData;
       
       if (profile) {
         updatedProfile = await jobSeekerService.update(profile.id, formData);
       } else {
-        updatedProfile = await jobSeekerService.create({ ...formData, user_id: user.id });
+        updatedProfile = await jobSeekerService.create({ 
+          ...formData, 
+          user_id: user.id 
+        });
       }
       
-      onUpdate(updatedProfile);
+      // Convert JobSeekerData to JobSeeker for the callback
+      const jobSeekerForCallback: JobSeeker = {
+        id: updatedProfile.id || '',
+        user_id: updatedProfile.user_id,
+        first_name: updatedProfile.first_name,
+        last_name: updatedProfile.last_name,
+        location: updatedProfile.location,
+        phone: updatedProfile.phone,
+        desired_salary: updatedProfile.desired_salary,
+        preferred_job_types: updatedProfile.preferred_job_types,
+      };
+      
+      onUpdate(jobSeekerForCallback);
       toast({
         title: "Success",
         description: "Profile updated successfully.",
