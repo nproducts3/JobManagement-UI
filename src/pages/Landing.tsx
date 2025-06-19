@@ -1,10 +1,21 @@
 
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Users, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Landing = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+
+  const handleJobSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/jobs?search=${encodeURIComponent(searchTerm)}`);
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -16,9 +27,28 @@ const Landing = () => {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             Connect with top employers and discover opportunities that match your skills and aspirations.
           </p>
+          
+          {/* Job Search */}
+          <form onSubmit={handleJobSearch} className="max-w-2xl mx-auto mb-8">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Input
+                  placeholder="Search jobs, companies, or locations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 py-3 text-gray-900"
+                />
+              </div>
+              <Button type="submit" size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+                Search Jobs
+              </Button>
+            </div>
+          </form>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
-              <Link to="/jobs">Browse Jobs</Link>
+              <Link to="/jobs">Browse All Jobs</Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" asChild>
               <Link to="/register">Get Started</Link>

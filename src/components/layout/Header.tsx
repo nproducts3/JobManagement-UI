@@ -11,12 +11,18 @@ import {
 import { User, LogOut } from 'lucide-react';
 
 export const Header = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, role, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const getDashboardLink = () => {
+    if (role?.role_name === 'ROLE_SUPER_ADMIN') return '/admin-dashboard';
+    if (role?.role_name === 'ROLE_EMPLOYER') return '/employer-dashboard';
+    return '/dashboard';
   };
 
   return (
@@ -44,9 +50,19 @@ export const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                  <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
                     Dashboard
                   </DropdownMenuItem>
+                  {role?.role_name === 'ROLE_SUPER_ADMIN' && (
+                    <DropdownMenuItem onClick={() => navigate('/create-user')}>
+                      Create User
+                    </DropdownMenuItem>
+                  )}
+                  {role?.role_name === 'ROLE_EMPLOYER' && (
+                    <DropdownMenuItem onClick={() => navigate('/post-job')}>
+                      Post Job
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout

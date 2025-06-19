@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Building, Clock } from 'lucide-react';
+import { Search, Building, Clock } from 'lucide-react';
 import { GoogleJob } from '@/types/api';
 
 const JobsList = () => {
@@ -34,7 +33,7 @@ const JobsList = () => {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('/api/google-jobs');
+      const response = await fetch('http://localhost:8080/api/google-jobs');
       if (response.ok) {
         const data = await response.json();
         setJobs(data);
@@ -104,7 +103,7 @@ const JobsList = () => {
                       </span>
                       {job.location && (
                         <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
+                          <Clock className="h-4 w-4" />
                           {job.location}
                         </span>
                       )}

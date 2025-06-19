@@ -1,85 +1,44 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { JobTitle, City, User } from '@/types/api';
 import { useNavigate } from 'react-router-dom';
-
-interface PostJobForm {
-  job_id: string;
-  title: string;
-  company_name: string;
-  location: string;
-  via: string;
-  share_link: string;
-  posted_at: string;
-  salary: string;
-  schedule_type: string;
-  qualifications: string;
-  description: string;
-  responsibilities: string[];
-  benefits: string[];
-  apply_links: string;
-  job_title_id: number | null;
-  city_id: number | null;
-}
+import { City, User } from '@/types/api';
 
 const PostJob = () => {
-  const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [employees, setEmployees] = useState<User[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState<PostJobForm>({
+  const [formData, setFormData] = useState({
     job_id: '',
     title: '',
     company_name: '',
     location: '',
-    via: '',
-    share_link: '',
-    posted_at: new Date().toISOString(),
+    city_id: '',
     salary: '',
     schedule_type: '',
-    qualifications: '',
+    via: '',
     description: '',
-    responsibilities: [],
-    benefits: [],
+    qualifications: '',
+    responsibilities: '',
+    benefits: '',
     apply_links: '',
-    job_title_id: null,
-    city_id: null,
   });
-
-  const { toast } = useToast();
+  const [cities, setCities] = useState<City[]>([]);
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchJobTitles();
     fetchCities();
     fetchEmployees();
   }, []);
-
-  const fetchJobTitles = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/api/job-titles', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setJobTitles(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch job titles:', error);
-    }
-  };
 
   const fetchCities = async () => {
     try {
@@ -106,26 +65,11 @@ const PostJob = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data);
+        setEmployees(data.filter((emp: User) => emp.id !== user?.id));
       }
     } catch (error) {
       console.error('Failed to fetch employees:', error);
     }
-  };
-
-  const handleInputChange = (field: keyof PostJobForm, value: string | number | null) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleArrayChange = (field: 'responsibilities' | 'benefits', value: string) => {
-    const items = value.split('\n').filter(item => item.trim() !== '');
-    setFormData(prev => ({
-      ...prev,
-      [field]: items
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,11 +79,11 @@ const PostJob = () => {
     try {
       const jobData = {
         ...formData,
-        id: crypto.randomUUID(),
-        job_id: formData.job_id || crypto.randomUUID(),
-        responsibilities: JSON.stringify(formData.responsibilities),
-        benefits: JSON.stringify(formData.benefits),
-        posted_by_user_id: selectedEmployee || user?.id,
+        id: `job-${Date.now()}`,
+        city_id: formData.city_id ? parseInt(formData.city_id) : null,
+        responsibilities: formData.responsibilities ? JSON.parse(`["${formData.responsibilities.split(',').join('","')}"]`) : null,
+        benefits: formData.benefits ? JSON.parse(`["${formData.benefits.split(',').join('","')}"]`) : null,
+        posted_by: selectedEmployee || user?.id,
       };
 
       const response = await fetch('http://localhost:8080/api/google-jobs', {
@@ -154,7 +98,7 @@ const PostJob = () => {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Job posted successfully!",
+          description: "Job posted successfully.",
         });
         navigate('/employer-dashboard');
       } else {
@@ -171,21 +115,25 @@ const PostJob = () => {
     }
   };
 
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card>
+      <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle>Post a New Job</CardTitle>
           <CardDescription>
-            Create a job posting using the google_jobs structure
+            Fill in the details to post a new job opportunity
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Post on behalf of employee */}
-            <div>
+            {/* Post on behalf of (optional) */}
+            <div className="space-y-2">
               <Label htmlFor="employee">Post on behalf of (optional)</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <Select onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select employee (or post as yourself)" />
                 </SelectTrigger>
@@ -199,66 +147,54 @@ const PostJob = () => {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
                 <Label htmlFor="job_id">Job ID</Label>
                 <Input
                   id="job_id"
-                  value={formData.job_id}
-                  onChange={(e) => handleInputChange('job_id', e.target.value)}
                   placeholder="Unique job identifier"
+                  value={formData.job_id}
+                  onChange={(e) => handleChange('job_id', e.target.value)}
+                  required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="title">Job Title *</Label>
                 <Input
                   id="title"
+                  placeholder="e.g., Software Engineer"
                   value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  onChange={(e) => handleChange('title', e.target.value)}
                   required
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
                 <Label htmlFor="company_name">Company Name *</Label>
                 <Input
                   id="company_name"
                   value={formData.company_name}
-                  onChange={(e) => handleInputChange('company_name', e.target.value)}
+                  onChange={(e) => handleChange('company_name', e.target.value)}
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
                 <Input
                   id="location"
+                  placeholder="e.g., New York, NY"
                   value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  onChange={(e) => handleChange('location', e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="job_title_id">Job Title Category</Label>
-                <Select value={formData.job_title_id?.toString() || ''} onValueChange={(value) => handleInputChange('job_title_id', parseInt(value))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select job title category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {jobTitles.map((jobTitle) => (
-                      <SelectItem key={jobTitle.id} value={jobTitle.id.toString()}>
-                        {jobTitle.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="city_id">City</Label>
-                <Select value={formData.city_id?.toString() || ''} onValueChange={(value) => handleInputChange('city_id', parseInt(value))}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Select onValueChange={(value) => handleChange('city_id', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select city" />
                   </SelectTrigger>
@@ -271,21 +207,21 @@ const PostJob = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="salary">Salary</Label>
                 <Input
                   id="salary"
-                  value={formData.salary}
-                  onChange={(e) => handleInputChange('salary', e.target.value)}
                   placeholder="e.g., $50,000 - $70,000"
+                  value={formData.salary}
+                  onChange={(e) => handleChange('salary', e.target.value)}
                 />
               </div>
-              <div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
                 <Label htmlFor="schedule_type">Schedule Type</Label>
-                <Select value={formData.schedule_type} onValueChange={(value) => handleInputChange('schedule_type', value)}>
+                <Select onValueChange={(value) => handleChange('schedule_type', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select schedule type" />
                   </SelectTrigger>
@@ -298,91 +234,75 @@ const PostJob = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="via">Via</Label>
                 <Input
                   id="via"
-                  value={formData.via}
-                  onChange={(e) => handleInputChange('via', e.target.value)}
                   placeholder="Job board or source"
-                />
-              </div>
-              <div>
-                <Label htmlFor="apply_links">Apply Links</Label>
-                <Input
-                  id="apply_links"
-                  value={formData.apply_links}
-                  onChange={(e) => handleInputChange('apply_links', e.target.value)}
-                  placeholder="Application URL"
+                  value={formData.via}
+                  onChange={(e) => handleChange('via', e.target.value)}
                 />
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
+              <Label htmlFor="apply_links">Apply Links</Label>
+              <Input
+                id="apply_links"
+                placeholder="Application URL"
+                value={formData.apply_links}
+                onChange={(e) => handleChange('apply_links', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Job Description *</Label>
               <Textarea
                 id="description"
+                placeholder="Describe the job role and responsibilities..."
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(e) => handleChange('description', e.target.value)}
                 rows={4}
                 required
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="qualifications">Qualifications</Label>
               <Textarea
                 id="qualifications"
+                placeholder="Required qualifications and skills..."
                 value={formData.qualifications}
-                onChange={(e) => handleInputChange('qualifications', e.target.value)}
+                onChange={(e) => handleChange('qualifications', e.target.value)}
                 rows={3}
-                placeholder="Required qualifications and skills"
               />
             </div>
 
-            <div>
-              <Label htmlFor="responsibilities">Responsibilities (one per line)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="responsibilities">Responsibilities (comma-separated)</Label>
               <Textarea
                 id="responsibilities"
-                value={formData.responsibilities.join('\n')}
-                onChange={(e) => handleArrayChange('responsibilities', e.target.value)}
+                placeholder="List key responsibilities separated by commas"
+                value={formData.responsibilities}
+                onChange={(e) => handleChange('responsibilities', e.target.value)}
                 rows={3}
-                placeholder="Key responsibilities (one per line)"
               />
             </div>
 
-            <div>
-              <Label htmlFor="benefits">Benefits (one per line)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="benefits">Benefits (comma-separated)</Label>
               <Textarea
                 id="benefits"
-                value={formData.benefits.join('\n')}
-                onChange={(e) => handleArrayChange('benefits', e.target.value)}
+                placeholder="List benefits separated by commas"
+                value={formData.benefits}
+                onChange={(e) => handleChange('benefits', e.target.value)}
                 rows={3}
-                placeholder="Employee benefits (one per line)"
               />
             </div>
 
-            <div>
-              <Label htmlFor="share_link">Share Link</Label>
-              <Input
-                id="share_link"
-                value={formData.share_link}
-                onChange={(e) => handleInputChange('share_link', e.target.value)}
-                placeholder="Shareable job posting URL"
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Posting...' : 'Post Job'}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/employer-dashboard')}>
-                Cancel
-              </Button>
-            </div>
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? 'Posting Job...' : 'Post Job'}
+            </Button>
           </form>
         </CardContent>
       </Card>

@@ -1,14 +1,15 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Role, Organization } from '@/types/api';
 
-const Register = () => {
+const CreateUser = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -16,13 +17,51 @@ const Register = () => {
     first_name: '',
     last_name: '',
     phone_number: '',
-    role_id: 'ROLE_JOBSEEKER', // Default to job seeker role
-    organization_id: 'default-org-id', // You'll need to set a default organization
+    role_id: '',
+    organization_id: '',
   });
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchRoles();
+    fetchOrganizations();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/organizations', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +72,7 @@ const Register = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(formData),
       });
@@ -40,16 +80,16 @@ const Register = () => {
       if (response.ok) {
         toast({
           title: "Success",
-          description: "Account created successfully. Please log in.",
+          description: "User created successfully.",
         });
-        navigate('/login');
+        navigate('/admin-dashboard');
       } else {
-        throw new Error('Registration failed');
+        throw new Error('Failed to create user');
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create account. Please try again.",
+        description: "Failed to create user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -61,21 +101,13 @@ const Register = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleGoogleSignUp = () => {
-    // Google Sign-Up implementation would go here
-    toast({
-      title: "Coming Soon",
-      description: "Google Sign-Up will be implemented with backend integration.",
-    });
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Create New User</CardTitle>
           <CardDescription className="text-center">
-            Enter your information to create a job seeker account
+            Create a new user account with specific role and organization
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -119,7 +151,7 @@ const Register = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter email"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
                 required
@@ -143,40 +175,52 @@ const Register = () => {
               <Input
                 id="phone_number"
                 type="tel"
-                placeholder="Your phone number"
+                placeholder="Phone number"
                 value={formData.phone_number}
                 onChange={(e) => handleChange('phone_number', e.target.value)}
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select onValueChange={(value) => handleChange('role_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.role_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="organization">Organization</Label>
+              <Select onValueChange={(value) => handleChange('organization_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name || org.domain}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? 'Creating user...' : 'Create User'}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignUp}>
-            Sign up with Google
-          </Button>
-
-          <div className="text-center text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:underline">
-              Sign in
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default Register;
+export default CreateUser;
