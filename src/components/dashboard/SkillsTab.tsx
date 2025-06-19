@@ -27,7 +27,7 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
   const fetchSkills = async () => {
     try {
-      const response = await fetch(`/api/job-seeker-skills?job_seeker_id=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-skills?job_seeker_id=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -48,7 +48,7 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/job-seeker-skills', {
+      const response = await fetch('http://localhost:8080/api/job-seeker-skills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
   const removeSkill = async (skillId: string) => {
     try {
-      const response = await fetch(`/api/job-seeker-skills/${skillId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-skills/${skillId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
