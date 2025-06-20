@@ -14,7 +14,7 @@ const EmployeeDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold">Employee Dashboard</h1>
             <p className="text-gray-600">
-              Welcome back, {user?.first_name} {user?.last_name}
+                Welcome back, {user?.firstName} {user?.lastName}
             </p>
           </div>
           <div className="flex gap-3">

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, role } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -22,12 +21,13 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const { redirectPath } = await login(email, password);
       toast({
         title: "Success",
         description: "You have been logged in successfully.",
       });
-      navigate('/dashboard');
+      // Role-based redirect
+      navigate(redirectPath);
     } catch (error) {
       toast({
         title: "Error",

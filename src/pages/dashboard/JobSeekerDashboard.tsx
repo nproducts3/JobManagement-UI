@@ -54,13 +54,7 @@ const JobSeekerDashboard = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading dashboard...</div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -69,7 +63,7 @@ const JobSeekerDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold">Job Seeker Dashboard</h1>
             <p className="text-gray-600">
-              Welcome back, {user?.first_name} {user?.last_name}
+              Welcome back, {user?.firstName} {user?.lastName}
             </p>
           </div>
           <div className="flex gap-3">

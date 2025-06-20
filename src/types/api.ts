@@ -3,11 +3,11 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  phone_number?: string;
-  profile_picture?: string;
-  role_id: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  profilePicture?: string;
+  role: Role;
   organization_id: string;
   email_verified?: boolean;
   disabled: boolean;
@@ -17,9 +17,9 @@ export interface User {
 
 export interface Role {
   id: string;
-  role_name: string;
-  role_description?: string;
-  role_permission?: string;
+  roleName: string;
+  roleDescription?: string;
+  rolePermission?: string;
 }
 
 export interface Organization {

@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Organization, GoogleJob } from '@/types/api';
 import { Users, Building2, Briefcase, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { UserManagementTable } from '@/components/admin/UserManagementTable';
+import { toast, useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -82,6 +84,23 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleEditUser = (user: User) => {
+    toast({
+      title: "Edit User",
+        description: `Opening edit form for ${user.firstName} ${user.lastName}`,
+    });
+    // Navigate to edit user page or open modal
+  };
+  
+  const handleDeleteUser = (userId: string) => {
+    setUsers(users.filter(user => user.id !== userId));
+    setStats(prev => ({
+      ...prev,
+      totalUsers: prev.totalUsers - 1,
+      activeUsers: users.find(u => u.id === userId)?.disabled ? prev.activeUsers : prev.activeUsers - 1
+    }));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -127,7 +146,7 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -137,7 +156,7 @@ const AdminDashboard = () => {
               <Briefcase className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Users Management */}
@@ -152,7 +171,7 @@ const AdminDashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             {users.slice(0, 10).map((user) => (
               <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
@@ -164,11 +183,16 @@ const AdminDashboard = () => {
                   <Badge variant={user.disabled ? "destructive" : "default"}>
                     {user.disabled ? "Disabled" : "Active"}
                   </Badge>
-                  <Badge variant="outline">{user.role_id}</Badge>
+                  <Badge variant="outline">{user.role_id.roleName}</Badge>
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
+          <UserManagementTable
+            users={users}
+            onEditUser={handleEditUser}
+            onDeleteUser={handleDeleteUser}
+          />
         </CardContent>
       </Card>
 

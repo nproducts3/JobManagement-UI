@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,11 +41,7 @@ const PostJob = () => {
 
   const fetchCities = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/cities', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await fetch('http://localhost:8080/api/cities');
       if (response.ok) {
         const data = await response.json();
         setCities(data);
@@ -58,11 +53,7 @@ const PostJob = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organization_id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organization_id}`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.filter((emp: User) => emp.id !== user?.id));
@@ -90,7 +81,6 @@ const PostJob = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(jobData),
       });
@@ -140,7 +130,7 @@ const PostJob = () => {
                 <SelectContent>
                   {employees.map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
-                      {employee.first_name} {employee.last_name} ({employee.email})
+                      {employee.firstName} {employee.lastName} ({employee.email})
                     </SelectItem>
                   ))}
                 </SelectContent>

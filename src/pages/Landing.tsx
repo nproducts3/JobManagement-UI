@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -18,8 +17,40 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Header Bar */}
+      <header className="w-full bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+          {/* Logo and Site Name */}
+          <div className="flex items-center gap-2">
+            <Briefcase className="h-7 w-7 text-blue-600" />
+            <span className="text-2xl font-bold text-blue-700">JobSpring</span>
+          </div>
+          {/* Center Navigation */}
+          <nav>
+            <Link to="/jobs" className="text-lg font-medium text-black hover:text-blue-600 transition">
+              Find Jobs
+            </Link>
+          </nav>
+          {/* Auth Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="border border-gray-300 text-black hover:bg-gray-100"
+              asChild
+            >
+              <Link to="/login">Log In</Link>
+            </Button>
+            <Button
+              className="bg-black text-white hover:bg-gray-800"
+              asChild
+            >
+              <Link to="/register">Sign Up</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
       {/* Hero Section - Start Your Job Search */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold mb-6">
             Find Your Dream Job Today
@@ -50,7 +81,7 @@ const Landing = () => {
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
               <Link to="/jobs">Browse All Jobs</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" asChild>
+            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
               <Link to="/register">Start Your Career Journey</Link>
             </Button>
           </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,15 @@ const CreateUser = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Add a mapping for user-friendly role names
+  const ROLE_LABELS: Record<string, string> = {
+    'ROLE_ADMIN': 'Admin',
+    'ROLE_SUPER_ADMIN': 'Super Admin',
+    'ROLE_JOBSEEKER': 'Job Seeker',
+    'ROLE_EMPLOYER': 'Employer',
+    'ROLE_EMPLOYEE': 'Employee',
+  };
+
   useEffect(() => {
     fetchRoles();
     fetchOrganizations();
@@ -40,6 +48,7 @@ const CreateUser = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('Fetched roles:', data);
         setRoles(data);
       } else {
         console.error('Failed to fetch roles:', response.status);
@@ -205,14 +214,16 @@ const CreateUser = () => {
 
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select onValueChange={(value) => handleChange('roleId', value)}>
+              <Select value={formData.roleId} onValueChange={(value) => handleChange('roleId', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue>
+                    {ROLE_LABELS[roles.find(r => r.id === formData.roleId)?.roleName || ''] || 'Select role'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
-                      {role.role_name}
+                      {role.roleName}
                     </SelectItem>
                   ))}
                 </SelectContent>

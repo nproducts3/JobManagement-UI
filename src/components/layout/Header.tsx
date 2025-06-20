@@ -20,9 +20,9 @@ export const Header = () => {
   };
 
   const getDashboardLink = () => {
-    if (role?.role_name === 'ROLE_SUPER_ADMIN') return '/admin-dashboard';
-    if (role?.role_name === 'ROLE_EMPLOYER') return '/employer-dashboard';
-    if (role?.role_name === 'ROLE_EMPLOYEE') return '/employee-dashboard';
+    if (role?.roleName === 'ROLE_SUPER_ADMIN') return '/admin-dashboard';
+    if (role?.roleName === 'ROLE_EMPLOYER') return '/employer-dashboard';
+    if (role?.roleName === 'ROLE_EMPLOYEE') return '/employee-dashboard';
     return '/dashboard';
   };
 
@@ -32,7 +32,7 @@ export const Header = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold text-primary">
-              JobPortal
+              JobSpring
             </Link>
             <nav className="ml-8 flex space-x-4">
               <Link to="/jobs" className="text-gray-600 hover:text-gray-900">
@@ -47,24 +47,27 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
-                    <span>{user?.first_name} {user?.last_name}</span>
+                    <span>{user?.firstName} {user?.lastName}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(getDashboardLink())}>
                     Dashboard
                   </DropdownMenuItem>
-                  {role?.role_name === 'ROLE_JOBSEEKER' && (
+                  {role?.roleName === 'ROLE_JOBSEEKER' && (
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
                       Settings
                     </DropdownMenuItem>
                   )}
-                  {role?.role_name === 'ROLE_SUPER_ADMIN' && (
+                  {role?.roleName === 'ROLE_SUPER_ADMIN' && (
                     <DropdownMenuItem onClick={() => navigate('/create-user')}>
                       Create User
                     </DropdownMenuItem>
                   )}
-                  {role?.role_name === 'ROLE_EMPLOYER' && (
+                  {role?.roleName === 'ROLE_EMPLOYER' && (
                     <DropdownMenuItem onClick={() => navigate('/post-job')}>
                       Post Job
                     </DropdownMenuItem>

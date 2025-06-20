@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { RoleData } from '@/services/roleService';
+import { roleService } from '@/services/roleService';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -16,20 +17,33 @@ const Register = () => {
     firstName: '',
     lastName: '',
     phoneNumber: '',
-    roleId: 'ROLE_JOBSEEKER',
-    organizationId: 'default-org-id',
+    roleId: 'b3e1c1e2-1234-4a5b-8c6d-123456789a02',
+    organizationId: 'b3e1c1e2-1234-4a5b-8c6d-123456789b01',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    roleService.getAll().then((data) => {
+      const jobSeekerRole = data.find(r => r.role_name === 'ROLE_JOBSEEKER');
+      if (jobSeekerRole && jobSeekerRole.id) {
+        setFormData(prev => ({ ...prev, roleId: jobSeekerRole.id! }));
+      }
+    });
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    const payload = {
+      ...formData,
+    };
+
     try {
-      await register(formData);
+      await register(payload);
       toast({
         title: "Success",
         description: "Account created successfully. Please log in.",

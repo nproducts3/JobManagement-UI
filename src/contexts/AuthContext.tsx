@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Role } from '@/types/api';
 
@@ -6,8 +5,8 @@ interface AuthContextType {
   user: User | null;
   role: Role | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
+  login: (email: string, password: string) => Promise<{redirectPath: string}>;
+  register: (userData: RegisterData) => Promise<{redirectPath: string}>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -54,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/users/me', {
+      const response = await fetch('http://localhost:8080/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -62,17 +61,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.ok) {
         const userData = await response.json();
+        console.log('userData', userData);
         setUser(userData);
         
-        const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.role_id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        if (userData.role_id) {
+          if (typeof userData.role_id === 'string') {
+            const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.role_id}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (roleResponse.ok) {
+              const roleData = await roleResponse.json();
+              setRole(roleData);
+            }
+          } else if (typeof userData.role_id === 'object') {
+            setRole(userData.role_id);
           }
-        });
-        
-        if (roleResponse.ok) {
-          const roleData = await roleResponse.json();
-          setRole(roleData);
+        } else {
+          console.error('userData.role_id is undefined!', userData);
+          setRole(null);
         }
       } else {
         logout();
@@ -85,87 +94,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
-    const demoUsers = {
-      'jobseeker@demo.com': {
-        id: 'demo-jobseeker-id',
-        username: 'jobseeker_demo',
-        email: 'jobseeker@demo.com',
-        first_name: 'John',
-        last_name: 'Seeker',
-        role_id: 'ROLE_JOBSEEKER',
-        organization_id: 'demo-org-id',
-        phone_number: '+1234567890'
-      },
-      'admin@demo.com': {
-        id: 'demo-admin-id',
-        username: 'admin_demo',
-        email: 'admin@demo.com',
-        first_name: 'Admin',
-        last_name: 'User',
-        role_id: 'ROLE_SUPER_ADMIN',
-        organization_id: 'demo-org-id',
-        phone_number: '+1234567891'
-      },
-      'employer@demo.com': {
-        id: 'demo-employer-id',
-        username: 'employer_demo',
-        email: 'employer@demo.com',
-        first_name: 'Jane',
-        last_name: 'Employer',
-        role_id: 'ROLE_EMPLOYER',
-        organization_id: 'demo-org-id',
-        phone_number: '+1234567892'
-      },
-      'employee@demo.com': {
-        id: 'demo-employee-id',
-        username: 'employee_demo',
-        email: 'employee@demo.com',
-        first_name: 'Mike',
-        last_name: 'Employee',
-        role_id: 'ROLE_EMPLOYEE',
-        organization_id: 'demo-org-id',
-        phone_number: '+1234567893'
-      }
-    };
-
-    const demoRoles = {
-      'ROLE_JOBSEEKER': {
-        id: 'ROLE_JOBSEEKER',
-        role_name: 'ROLE_JOBSEEKER',
-        role_description: 'Job Seeker Role',
-        role_permission: 'READ'
-      },
-      'ROLE_SUPER_ADMIN': {
-        id: 'ROLE_SUPER_ADMIN',
-        role_name: 'ROLE_SUPER_ADMIN',
-        role_description: 'Super Admin Role',
-        role_permission: 'ALL'
-      },
-      'ROLE_EMPLOYER': {
-        id: 'ROLE_EMPLOYER',
-        role_name: 'ROLE_EMPLOYER',
-        role_description: 'Employer Role',
-        role_permission: 'WRITE'
-      },
-      'ROLE_EMPLOYEE': {
-        id: 'ROLE_EMPLOYEE',
-        role_name: 'ROLE_EMPLOYEE',
-        role_description: 'Employee Role',
-        role_permission: 'READ'
-      }
-    };
-
-    const demoUser = demoUsers[email as keyof typeof demoUsers];
-    if (demoUser && password === 'demo123') {
-      const mockToken = `demo-token-${Date.now()}`;
-      localStorage.setItem('token', mockToken);
-      setToken(mockToken);
-      setUser(demoUser as User);
-      setRole(demoRoles[demoUser.role_id as keyof typeof demoRoles] as Role);
-      return;
+  const getDashboardPath = (roleName: string): string => {
+    switch (roleName) {
+      case 'ROLE_ADMIN':
+        return '/admin-dashboard';
+      case 'ROLE_EMPLOYEE':
+        return '/employer-dashboard';
+      case 'ROLE_JOBSEEKER':
+      default:
+        return '/dashboard';
     }
+  };
 
+  const login = async (email: string, password: string) => {
     try {
       const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
@@ -180,13 +121,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      const { token: authToken, user: userData } = data;
-      
+      const { token: authToken, id, email: userEmail, role } = data;
+
       localStorage.setItem('token', authToken);
       setToken(authToken);
-      setUser(userData);
+
+      // Set user and role in context
+      setUser({ id, email: userEmail, role_id: role } as any); // Adjust as needed for your User type
+      setRole({ id: role, roleName: role } as any); // Adjust as needed for your Role type
+
+      // Redirect based on role
+      const redirectPath = getDashboardPath(role);
+      return { redirectPath };
     } catch (error) {
-      throw new Error('Invalid credentials. Try demo emails: jobseeker@demo.com, admin@demo.com, employer@demo.com, or employee@demo.com with password: demo123');
+      throw new Error('Invalid credentials.');
     }
   };
 
@@ -196,12 +144,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify({
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phoneNumber: userData.phoneNumber,
+        roleId: userData.roleId,
+        organizationId: userData.organizationId,
+      }),
     });
 
     if (!response.ok) {
       throw new Error('Registration failed');
     }
+    
+    const redirectPath = '/login';
+    return { redirectPath };
   };
 
   const logout = () => {
