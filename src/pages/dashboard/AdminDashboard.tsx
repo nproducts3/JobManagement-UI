@@ -1,14 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Organization, GoogleJob } from '@/types/api';
+import { User, Organization, GoogleJob, Role } from '@/types/api';
 import { Users, Building2, Briefcase, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserManagementTable } from '@/components/admin/UserManagementTable';
 import { toast, useToast } from '@/hooks/use-toast';
+import UserEditModal from '@/components/admin/UserEditModal';
+import { userService } from '@/services/userService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -22,11 +24,17 @@ const AdminDashboard = () => {
   });
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
     fetchOrganizations();
     fetchJobs();
+    fetchRoles();
   }, []);
 
   const fetchUsers = async () => {
@@ -84,21 +92,68 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    toast({
-      title: "Edit User",
-        description: `Opening edit form for ${user.firstName} ${user.lastName}`,
-    });
-    // Navigate to edit user page or open modal
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+    }
   };
-  
+
+  const handleEditUser = (user: User) => {
+    setEditUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveUser = async (data: Partial<User>) => {
+    if (!editUser) return;
+    try {
+      const userData = {
+        first_name: data.firstName || '',
+        last_name: data.lastName || '',
+        email: data.email || '',
+        phone_number: data.phoneNumber || '',
+        profile_picture: data.profilePicture || '',
+        role_id: (data as any).roleId || '',
+        organization_id: (data as any).organizationId || '',
+        email_verified: data.email_verified ?? editUser.email_verified ?? false,
+        disabled: data.disabled ?? editUser.disabled ?? false,
+        username: editUser.username,
+      };
+      await userService.update(editUser.id, userData);
+      toast({ title: 'User updated', description: 'User details updated successfully.' });
+      setEditModalOpen(false);
+      setEditUser(null);
+      fetchUsers();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update user.' });
+    }
+  };
+
   const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
-    setStats(prev => ({
-      ...prev,
-      totalUsers: prev.totalUsers - 1,
-      activeUsers: users.find(u => u.id === userId)?.disabled ? prev.activeUsers : prev.activeUsers - 1
-    }));
+    setDeleteUserId(userId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUserId) return;
+    try {
+      await userService.delete(deleteUserId);
+      toast({ title: 'User deleted', description: 'User deleted successfully.' });
+      setDeleteDialogOpen(false);
+      setDeleteUserId(null);
+      fetchUsers();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete user.' });
+    }
   };
 
   return (
@@ -193,6 +248,28 @@ const AdminDashboard = () => {
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
           />
+          <UserEditModal
+            open={editModalOpen}
+            onClose={() => { setEditModalOpen(false); setEditUser(null); }}
+            user={editUser}
+            roles={roles}
+            organizations={organizations}
+            onSave={handleSaveUser}
+          />
+          {deleteDialogOpen && (
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete User</DialogTitle>
+                </DialogHeader>
+                <div>Are you sure you want to delete this user?</div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={confirmDeleteUser}>Delete</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </CardContent>
       </Card>
 
@@ -239,8 +316,8 @@ const AdminDashboard = () => {
               <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
                   <h3 className="font-semibold">{job.title}</h3>
-                  <p className="text-sm text-gray-600">{job.company_name}</p>
-                  <p className="text-sm text-gray-600">{job.location}</p>
+                  <p className="text-sm text-gray-600">{job.companyName}</p>
+                  <p className="text-sm text-gray-600">{job.location}</p>   
                 </div>
                 <div>
                   {job.salary && <Badge variant="secondary">{job.salary}</Badge>}

@@ -8,7 +8,7 @@ export interface User {
   phoneNumber?: string;
   profilePicture?: string;
   role: Role;
-  organization_id: string;
+  organization: string;
   email_verified?: boolean;
   disabled: boolean;
   created_at?: string;
@@ -83,22 +83,22 @@ export interface JobResume {
 
 export interface GoogleJob {
   id: string;
-  job_id: string;
+  jobId: string;
   title: string;
-  company_name: string;
+  companyName: string;
   location?: string;
   via?: string;
-  share_link?: string;
-  posted_at?: string;
+  shareLink?: string;
+  postedAt?: string;
   salary?: string;
-  schedule_type?: string;
+  scheduleType?: string;
   qualifications?: string;
   description?: string;
   responsibilities?: any;
   benefits?: any;
-  apply_links?: string;
-  job_title_id?: number;
-  city_id?: number;
+  applyLinks?: string;
+  jobTitleId?: number;
+  cityId?: number;
 }
 
 export interface JobTitle {

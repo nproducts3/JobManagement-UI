@@ -53,7 +53,7 @@ const PostJob = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organization_id}`);
+      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organization}`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.filter((emp: User) => emp.id !== user?.id));
