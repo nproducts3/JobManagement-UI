@@ -42,7 +42,7 @@ const App = () => (
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
             <Route path="/jobs" element={<Layout><JobsList /></Layout>} />
-            <Route path="/jobs/:id" element={<Layout><JobDetails /></Layout>} />
+            <Route path="/google-jobs/:id" element={<Layout><JobDetails /></Layout>} />
             <Route path="/dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/employer-dashboard" element={<Layout><EmployerDashboard /></Layout>} />
             <Route path="/employee-dashboard" element={<Layout><EmployeeDashboard /></Layout>} />

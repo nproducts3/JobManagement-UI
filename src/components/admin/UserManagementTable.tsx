@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { User } from '@/types/api';
+import { User, Role } from '@/types/api';
 import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { roleService, RoleData } from '@/services/roleService';
 
 interface UserManagementTableProps {
   users: User[];
@@ -17,7 +18,27 @@ interface UserManagementTableProps {
 
 export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserManagementTableProps) => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [roles, setRoles] = useState<RoleData[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      const data = await roleService.fetchRoles();
+      console.log('Fetched roles:', data);
+      setRoles(data);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load roles",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSelectUser = (userId: string, checked: boolean) => {
     if (checked) {
@@ -53,18 +74,18 @@ export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserMan
   };
 
   const getRoleName = (roleId: string) => {
-    switch (roleId) {
-      case 'ROLE_SUPER_ADMIN':
-        return 'Admin';
-      case 'ROLE_EMPLOYER':
-        return 'Employer';
-      case 'ROLE_EMPLOYEE':
-        return 'Employee';
-      case 'ROLE_JOBSEEKER':
-        return 'Job Seeker';
-      default:
-        return roleId;
-    }
+    if (!roleId) return 'Unknown';
+    
+    // Use the same role labels mapping as in CreateUser
+    const ROLE_LABELS: Record<string, string> = {
+      'ROLE_ADMIN': 'Admin',
+      'ROLE_SUPER_ADMIN': 'Super Admin',
+      'ROLE_JOBSEEKER': 'Job Seeker',
+      'ROLE_EMPLOYER': 'Employer',
+      'ROLE_EMPLOYEE': 'Employee',
+    };
+    
+    return ROLE_LABELS[roleId] || roleId;
   };
 
   return (
@@ -117,12 +138,16 @@ export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserMan
               </TableCell>
               <TableCell>
                 {(() => {
+                  console.log('User roleId:', user.roleId, 'Available roles:', roles);
                   let roleStr = 'Unknown';
-                  if (typeof user.role === 'object' && user.role?.roleName) {
-                    roleStr = user.role.roleName;
-                  } else if (typeof user.role === 'string') {
-                    roleStr = user.role;
+                  
+                  // Find the role by roleId
+                  const userRole = roles.find(role => role.id === user.roleId);
+                  if (userRole) {
+                    roleStr = userRole.roleName;
                   }
+                  
+                  console.log('Found role:', userRole, 'Role name:', roleStr);
                   return <span className="text-gray-900">{getRoleName(roleStr)}</span>;
                 })()}
               </TableCell>

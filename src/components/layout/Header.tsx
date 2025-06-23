@@ -32,7 +32,7 @@ export const Header = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold text-primary">
-              JobSpring
+              EnsarJob
             </Link>
             <nav className="ml-8 flex space-x-4">
               <Link to="/jobs" className="text-gray-600 hover:text-gray-900">
