@@ -18,6 +18,7 @@ const CreateUser = () => {
     phoneNumber: '',
     roleId: '',
     organizationId: '',
+    disabled: false,
   });
   const [roles, setRoles] = useState<Role[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -128,7 +129,7 @@ const CreateUser = () => {
     }
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -247,6 +248,16 @@ const CreateUser = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2 flex items-center gap-2">
+              <input
+                id="disabled"
+                type="checkbox"
+                checked={formData.disabled}
+                onChange={e => handleChange('disabled', e.target.checked)}
+              />
+              <Label htmlFor="disabled">Disabled</Label>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>

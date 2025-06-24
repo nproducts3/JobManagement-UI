@@ -1,4 +1,5 @@
 
+
 // import { useState, useEffect } from 'react';
 // import { Link, useNavigate } from 'react-router-dom';
 // import { Button } from '@/components/ui/button';
@@ -607,16 +608,21 @@ const JobsList = () => {
     if (activeExperienceLevels.length > 0) {
       filtered = filtered.filter(job => {
         const jobTitle = job.title?.toLowerCase() || '';
+        const description = job.description?.toLowerCase() || '';
         return activeExperienceLevels.some(level => {
           switch (level) {
             case 'entryLevel':
-              return jobTitle.includes('junior') || jobTitle.includes('entry') || jobTitle.includes('associate');
+              return jobTitle.includes('junior') || jobTitle.includes('entry') || jobTitle.includes('associate') ||
+                     description.includes('junior') || description.includes('entry level') || description.includes('0-2 years');
             case 'midLevel':
-              return jobTitle.includes('mid') || (!jobTitle.includes('senior') && !jobTitle.includes('junior') && !jobTitle.includes('entry'));
+              return jobTitle.includes('mid') || description.includes('mid-level') || description.includes('3-5 years') ||
+                     (!jobTitle.includes('senior') && !jobTitle.includes('junior') && !jobTitle.includes('entry'));
             case 'seniorLevel':
-              return jobTitle.includes('senior') || jobTitle.includes('lead');
+              return jobTitle.includes('senior') || jobTitle.includes('lead') || description.includes('senior') ||
+                     description.includes('5+ years') || description.includes('experienced');
             case 'executive':
-              return jobTitle.includes('manager') || jobTitle.includes('director') || jobTitle.includes('vp') || jobTitle.includes('cto') || jobTitle.includes('ceo');
+              return jobTitle.includes('manager') || jobTitle.includes('director') || jobTitle.includes('vp') || 
+                     jobTitle.includes('cto') || jobTitle.includes('ceo') || description.includes('leadership');
             default:
               return false;
           }
@@ -637,11 +643,12 @@ const JobsList = () => {
         return activeRemoteOptions.some(option => {
           switch (option) {
             case 'remote':
-              return location.includes('remote') || description.includes('remote');
+              return location.includes('remote') || description.includes('remote work') || description.includes('work from home');
             case 'hybrid':
-              return location.includes('hybrid') || description.includes('hybrid');
+              return location.includes('hybrid') || description.includes('hybrid') || description.includes('flexible work');
             case 'onsite':
-              return !location.includes('remote') && !location.includes('hybrid');
+              return !location.includes('remote') && !location.includes('hybrid') && 
+                     !description.includes('remote') && !description.includes('hybrid');
             default:
               return false;
           }
@@ -653,8 +660,10 @@ const JobsList = () => {
     if (salaryRange[0] > 0) {
       filtered = filtered.filter(job => {
         if (!job.salary) return true;
-        const salaryNum = parseInt(job.salary.replace(/[^0-9]/g, '')) || 0;
-        return salaryNum >= salaryRange[0];
+        const salaryNumbers = job.salary.match(/\d+/g);
+        if (!salaryNumbers) return true;
+        const minSalary = parseInt(salaryNumbers[0]) * (job.salary.includes('k') || job.salary.includes('K') ? 1000 : 1);
+        return minSalary >= salaryRange[0];
       });
     }
 
@@ -663,8 +672,12 @@ const JobsList = () => {
       filtered = filtered.filter(job => {
         const description = job.description?.toLowerCase() || '';
         const title = job.title?.toLowerCase() || '';
+        const qualifications = job.qualifications?.toLowerCase() || '';
+        
         return selectedSkills.some(skill => 
-          description.includes(skill.toLowerCase()) || title.includes(skill.toLowerCase())
+          description.includes(skill.toLowerCase()) || 
+          title.includes(skill.toLowerCase()) ||
+          qualifications.includes(skill.toLowerCase())
         );
       });
     }
@@ -871,7 +884,7 @@ const JobsList = () => {
           <div className="space-y-4">
             {filteredJobs.map((job) => {
               const matchPercentage = getMatchPercentage();
-              const companyName = job.companyName || 'Unknown Company';
+                const companyName = job.companyName || 'Unknown Company';
               const jobTitle = job.title || 'Unknown Position';
               
               return (
