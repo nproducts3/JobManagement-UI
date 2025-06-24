@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Role, Organization } from '@/types/api';
+import { roleService, RoleData } from '@/services/roleService';
 
 const CreateUser = () => {
   const [formData, setFormData] = useState({
@@ -20,9 +21,9 @@ const CreateUser = () => {
     organizationId: '',
     disabled: false,
   });
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<RoleData[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -42,18 +43,9 @@ const CreateUser = () => {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/roles', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched roles:', data);
-        setRoles(data);
-      } else {
-        console.error('Failed to fetch roles:', response.status);
-      }
+      const data = await roleService.fetchRoles();
+      console.log('Fetched roles:', data);
+      setRoles(data);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
       toast({

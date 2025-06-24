@@ -43,7 +43,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
            {/* Logo and Site Name */}
            <div className="flex items-center gap-2">
-            <Briefcase className="h-7 w-7 text-blue-600" />             <span className="text-2xl font-bold text-blue-700">JobSpring</span>
+            <Briefcase className="h-7 w-7 text-blue-600" />             <span className="text-2xl font-bold text-blue-700">EnsarJob</span>
            </div>
            {/* Center Navigation */}
            <nav>

@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -7,12 +6,14 @@ export interface User {
   lastName: string;
   phoneNumber?: string;
   profilePicture?: string;
-  role: Role;
-  organization: string;
-  email_verified?: boolean;
+  roleId: string;
+  organizationId: string;
+  emailVerified?: boolean;
   disabled: boolean;
-  created_at?: string;
-  last_login?: string;
+  createdDateTime?: string;
+  lastLogin?: string;
+  lastUpdatedDateTime?: string;
+  updatedAt?: string;
 }
 
 export interface Role {
