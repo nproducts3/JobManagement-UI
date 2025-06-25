@@ -20,7 +20,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ open, onClose, use
     defaultValues: user
       ? {
           ...user,
-          organizationId: user.organization|| '',
+          organizationId: user.organizationId|| '',
           roleId: user.role?.id || '',
         }
       : {},
@@ -28,7 +28,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ open, onClose, use
 
   React.useEffect(() => {
     // If user has no organization_id, default to first org
-    let orgId = user?.organization || '';
+    let orgId = user?.organizationId  || '';
     if (!orgId && organizations.length > 0) {
       orgId = organizations[0].id;
     }
@@ -40,11 +40,21 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ open, onClose, use
   }, [user, organizations, methods]);
 
   const onSubmit = async (data: any) => {
-    // Map to backend expected keys
+    // Defensive: Ensure organizationId and roleId are present
+    let orgId = data.organizationId;
+    if (!orgId && organizations.length > 0) {
+      orgId = organizations[0].id;
+    }
+    if (!orgId || !data.roleId) {
+      methods.setError('organizationId', { type: 'manual', message: 'Organization is required' });
+      methods.setError('roleId', { type: 'manual', message: 'Role is required' });
+      return;
+    }
+    // Map to backend expected keys (camelCase)
     const mappedData = {
       ...data,
-      organization_id: data.organizationId,
-      role_id: data.roleId,
+      organizationId: orgId,
+      roleId: data.roleId,
     };
     await onSave(mappedData);
   };
@@ -125,11 +135,12 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ open, onClose, use
             />
             <FormField
               name="roleId"
+              rules={{ required: 'Role is required' }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
                   <FormControl>
-                    <select {...field} className="w-full border rounded px-2 py-1">
+                    <select {...field} className="w-full border rounded px-2 py-1" required>
                       <option value="">Select role</option>
                       {roles.map(role => (
                         <option key={role.id} value={role.id}>{role.roleName}</option>

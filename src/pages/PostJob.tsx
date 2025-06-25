@@ -12,25 +12,25 @@ import { City, User } from '@/types/api';
 
 const PostJob = () => {
   const [formData, setFormData] = useState({
-    job_id: '',
+    jobId: '',
     title: '',
-    company_name: '',
+    companyName: '',
     location: '',
-    city_id: '',
+    cityId: '',
     salary: '',
-    schedule_type: '',
+    scheduleType: '',
     via: '',
     description: '',
     qualifications: '',
     responsibilities: '',
     benefits: '',
-    apply_links: '',
+    applyLinks: '',
   });
   const [cities, setCities] = useState<City[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -53,7 +53,7 @@ const PostJob = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organization}`);
+      const response = await fetch(`http://localhost:8080/api/users?organization_id=${user?.organizationId}`);
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.filter((emp: User) => emp.id !== user?.id));
@@ -70,12 +70,13 @@ const PostJob = () => {
     try {
       const jobData = {
         ...formData,
-        id: `job-${Date.now()}`,
-        city_id: formData.city_id ? parseInt(formData.city_id) : null,
+        cityId: formData.cityId ? parseInt(formData.cityId) : null,
         responsibilities: formData.responsibilities ? JSON.parse(`["${formData.responsibilities.split(',').join('","')}"]`) : null,
         benefits: formData.benefits ? JSON.parse(`["${formData.benefits.split(',').join('","')}"]`) : null,
         posted_by: selectedEmployee || user?.id,
       };
+      // Remove 'id' if present (defensive)
+      if ('id' in jobData) delete jobData.id;
 
       const response = await fetch('http://localhost:8080/api/google-jobs', {
         method: 'POST',
@@ -109,6 +110,20 @@ const PostJob = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Only allow ROLE_ADMIN or ROLE_EMPLOYEE to post jobs
+  if (role && !(role.roleName === 'ROLE_ADMIN' || role.roleName === 'ROLE_EMPLOYEE')) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Forbidden</CardTitle>
+            <CardDescription>You do not have permission to post jobs.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-4xl mx-auto">
@@ -139,12 +154,12 @@ const PostJob = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="job_id">Job ID</Label>
+                <Label htmlFor="jobId">Job ID</Label>
                 <Input
-                  id="job_id"
+                  id="jobId"
                   placeholder="Unique job identifier"
-                  value={formData.job_id}
-                  onChange={(e) => handleChange('job_id', e.target.value)}
+                  value={formData.jobId}
+                  onChange={(e) => handleChange('jobId', e.target.value)}
                   required
                 />
               </div>
@@ -162,11 +177,11 @@ const PostJob = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="company_name">Company Name *</Label>
+                <Label htmlFor="companyName">Company Name *</Label>
                 <Input
-                  id="company_name"
-                  value={formData.company_name}
-                  onChange={(e) => handleChange('company_name', e.target.value)}
+                  id="companyName"
+                  value={formData.companyName}
+                  onChange={(e) => handleChange('companyName', e.target.value)}
                   required
                 />
               </div>
@@ -184,7 +199,7 @@ const PostJob = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
-                <Select onValueChange={(value) => handleChange('city_id', value)}>
+                <Select onValueChange={(value) => handleChange('cityId', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select city" />
                   </SelectTrigger>
@@ -210,8 +225,8 @@ const PostJob = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="schedule_type">Schedule Type</Label>
-                <Select onValueChange={(value) => handleChange('schedule_type', value)}>
+                <Label htmlFor="scheduleType">Schedule Type</Label>
+                <Select onValueChange={(value) => handleChange('scheduleType', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select schedule type" />
                   </SelectTrigger>
@@ -236,12 +251,12 @@ const PostJob = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apply_links">Apply Links</Label>
+              <Label htmlFor="applyLinks">Apply Links</Label>
               <Input
-                id="apply_links"
+                id="applyLinks"
                 placeholder="Application URL"
-                value={formData.apply_links}
-                onChange={(e) => handleChange('apply_links', e.target.value)}
+                    value={formData.applyLinks}
+                onChange={(e) => handleChange('applyLinks', e.target.value)}
               />
             </div>
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,46 +11,6 @@ const CandidatesTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mock candidates data with proper status badges
-  const mockCandidates = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      position: 'Senior Software Engineer',
-      location: 'San Francisco, CA',
-      experience: '8 years',
-      match: 95,
-      status: 'new',
-      initials: 'SJ',
-      skills: ['React', 'Node.js', 'TypeScript', 'AWS'],
-      appliedDate: 'May 22, 2025'
-    },
-    {
-      id: '2',
-      name: 'Michael Chen',
-      position: 'Full Stack Developer',
-      location: 'Remote',
-      experience: '6 years',
-      match: 88,
-      status: 'reviewing',
-      initials: 'MC',
-      skills: ['JavaScript', 'Python', 'Docker', 'PostgreSQL'],
-      appliedDate: 'May 21, 2025'
-    },
-    {
-      id: '3',
-      name: 'Emily Rodriguez',
-      position: 'Product Manager',
-      location: 'Austin, TX',
-      experience: '5 years',
-      match: 92,
-      status: 'interview',
-      initials: 'ER',
-      skills: ['Product Strategy', 'Agile', 'Analytics', 'User Research'],
-      appliedDate: 'May 20, 2025'
-    }
-  ];
-
   useEffect(() => {
     fetchCandidates();
   }, []);
@@ -63,23 +22,22 @@ const CandidatesTab = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+      
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched candidates:', data);
         setCandidates(data);
       } else {
-        // Use mock data if API fails
-        console.log('Using mock candidates data');
+        console.error('Failed to fetch candidates:', response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch candidates:', error);
-      // Use mock data on error
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string = 'new') => {
     const styles = {
       new: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'new' },
       reviewing: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'reviewing' },
@@ -98,6 +56,30 @@ const CandidatesTab = () => {
     if (match >= 80) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const first = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const last = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return first + last || 'JS';
+  };
+
+  const getRandomMatch = () => Math.floor(Math.random() * 40) + 60;
+  const getRandomStatus = () => {
+    const statuses = ['new', 'reviewing', 'interview'];
+    return statuses[Math.floor(Math.random() * statuses.length)];
+  };
+
+  const filteredCandidates = candidates.filter(candidate => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${candidate.firstName || ''} ${candidate.lastName || ''}`.toLowerCase();
+    const location = (candidate.location || '').toLowerCase();
+    const jobTypes = (candidate.preferredJobTypes || '').toLowerCase();
+    
+    return fullName.includes(searchLower) || 
+           location.includes(searchLower) || 
+           jobTypes.includes(searchLower);
+  });
 
   if (isLoading) {
     return <div className="text-center py-8">Loading candidates...</div>;
@@ -136,59 +118,84 @@ const CandidatesTab = () => {
 
       {/* Candidates List */}
       <div className="space-y-4">
-        {mockCandidates.map((candidate) => (
-          <Card key={candidate.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
-                    {candidate.initials}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-lg">{candidate.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${getMatchColor(candidate.match)}`}>
-                          {candidate.match}% Match
-                        </span>
-                        {getStatusBadge(candidate.status)}
+        {filteredCandidates.map((candidate) => {
+          const match = getRandomMatch();
+          const status = getRandomStatus();
+          const initials = getInitials(candidate.firstName, candidate.lastName);
+          const fullName = `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() || 'Unknown Candidate';
+          const skills = candidate.preferredJobTypes ? candidate.preferredJobTypes.split(',').slice(0, 4) : ['React', 'JavaScript'];
+          
+          return (
+            <Card key={candidate.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-medium">
+                      {initials}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-lg">{fullName}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${getMatchColor(match)}`}>
+                            {match}% Match
+                          </span>
+                          {getStatusBadge(status)}
+                        </div>
                       </div>
+                      {/* Jobseeker Type Badges and Info */}
+                      <div className="flex items-center gap-2 mb-1">
+                        {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Full-time') && (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">Full-time</Badge>
+                        )}
+                        {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Part-time') && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">Part-time</Badge>
+                        )}
+                            {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Internship') && (
+                          <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">Internship</Badge>
+                        )}
+                          {!candidate.preferredJobTypes && (
+                            <Badge variant="outline" className="text-xs">Job Seeker</Badge>
+                          )}
+                      </div>
+                      {/* End Jobseeker Type Badges */}
+                      <p className="text-gray-600 mb-1">{candidate.preferredJobTypes || 'Job Seeker'}</p>
+                      <p className="text-sm text-gray-500 mb-2">
+                        {candidate.location || 'Location not specified'} 
+                        {candidate.desiredSalary && ` • ${candidate.desiredSalary}`}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {skills.map((skill, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {skill.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">Applied recently</p>
                     </div>
-                    <p className="text-gray-600 mb-1">{candidate.position}</p>
-                    <p className="text-sm text-gray-500 mb-2">
-                      {candidate.location} • {candidate.experience}
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {candidate.skills.map((skill, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">Applied {candidate.appliedDate}</p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Profile
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Schedule Interview
+                    </Button>
+                    <Button size="sm" className="bg-black hover:bg-gray-800">
+                      <ArrowRight className="h-4 w-4 mr-1" />
+                      Move to Next Stage
+                    </Button>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Profile
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Schedule Interview
-                  </Button>
-                  <Button size="sm" className="bg-black hover:bg-gray-800">
-                    <ArrowRight className="h-4 w-4 mr-1" />
-                    Move to Next Stage
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {mockCandidates.length === 0 && (
+      {filteredCandidates.length === 0 && !isLoading && (
         <Card>
           <CardContent className="text-center py-12">
             <p className="text-gray-500">No candidates found.</p>

@@ -325,7 +325,7 @@ const JobDetails = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Job Not Found</h2>
-          <Link to="/jobs">
+          <Link to="/google-jobs">
             <Button>Back to Jobs</Button>
           </Link>
         </div>
@@ -341,7 +341,7 @@ const JobDetails = () => {
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <Button variant="ghost" asChild className="mb-6">
-          <Link to="/jobs">
+          <Link to="/google-jobs">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Jobs
           </Link>

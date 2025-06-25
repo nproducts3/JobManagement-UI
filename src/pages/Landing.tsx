@@ -33,7 +33,7 @@ const Landing = () => {
 
   const handleJobSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/jobs?search=${encodeURIComponent(searchTerm)}`);
+    navigate(`/google-jobs?search=${encodeURIComponent(searchTerm)}`);
   };
 
   return (
@@ -47,7 +47,7 @@ const Landing = () => {
            </div>
            {/* Center Navigation */}
            <nav>
-             <Link to="/jobs" className="text-lg font-medium text-black hover:text-blue-600 transition">
+             <Link to="/google-jobs" className="text-lg font-medium text-black hover:text-blue-600 transition">
                Find Jobs
              </Link>
            </nav>
@@ -98,7 +98,7 @@ const Landing = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
-              <Link to="/jobs">Browse All Jobs</Link>
+              <Link to="/google-jobs">Browse All Jobs</Link>
             </Button>
             <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
               <Link to="/register">Start Your Career Journey</Link>
@@ -175,18 +175,18 @@ const Landing = () => {
                       )}
                       
                       <Button className="w-full bg-gray-900 hover:bg-gray-800" asChild>
-                        <Link to={`/jobs/${job.id}`}>Apply Now</Link>
+                        <Link to={`${job.id}`}>Apply Now</Link>
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              );
+              );  
             })}
           </div>
           
           <div className="text-center">
             <Button size="lg" asChild>
-              <Link to="/jobs">Explore All Jobs</Link>
+              <Link to="/google-jobs">Explore All Jobs</Link>
             </Button>
           </div>
         </div>
@@ -407,7 +407,7 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold mb-4">For Job Seekers</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/jobs" className="hover:text-white">Browse Jobs</Link></li>
+                <li><Link to="/google-jobs" className="hover:text-white">Browse Jobs</Link></li>
                 <li><Link to="/register" className="hover:text-white">Create Account</Link></li>
                 <li><Link to="/dashboard" className="hover:text-white">Career Dashboard</Link></li>
               </ul>

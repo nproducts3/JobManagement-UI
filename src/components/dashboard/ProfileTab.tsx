@@ -30,12 +30,12 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        first_name: profile.first_name || '',
-        last_name: profile.last_name || '',
+        first_name: profile.firstName || '',
+        last_name: profile.lastName || '',
         location: profile.location || '',
         phone: profile.phone || '',
-        desired_salary: profile.desired_salary || '',
-        preferred_job_types: profile.preferred_job_types || '',
+        desired_salary: profile.desiredSalary || '',
+        preferred_job_types: profile.preferredJobTypes || '',
       });
     }
   }, [profile]);
@@ -62,12 +62,12 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
       const jobSeekerForCallback: JobSeeker = {
         id: updatedProfile.id || '',
         user_id: updatedProfile.user_id,
-        first_name: updatedProfile.first_name,
-        last_name: updatedProfile.last_name,
+        firstName: updatedProfile.first_name,
+        lastName: updatedProfile.last_name,
         location: updatedProfile.location,
         phone: updatedProfile.phone,
-        desired_salary: updatedProfile.desired_salary,
-        preferred_job_types: updatedProfile.preferred_job_types,
+        desiredSalary: updatedProfile.desired_salary,
+        preferredJobTypes: updatedProfile.preferred_job_types,
       };
       
       onUpdate(jobSeekerForCallback);

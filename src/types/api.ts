@@ -7,6 +7,7 @@ export interface User {
   phoneNumber?: string;
   profilePicture?: string;
   roleId: string;
+  role: Role;
   organizationId: string;
   emailVerified?: boolean;
   disabled: boolean;
@@ -35,12 +36,12 @@ export interface Organization {
 export interface JobSeeker {
   id: string;
   user_id: string;
-  first_name?: string;
-  last_name?: string;
+  firstName?: string;
+  lastName?: string;
   location?: string;
   phone?: string;
-  desired_salary?: string;
-  preferred_job_types?: string;
+  desiredSalary?: string;
+  preferredJobTypes?: string;
 }
 
 export interface JobSeekerSkill {
@@ -100,6 +101,9 @@ export interface GoogleJob {
   applyLinks?: string;
   jobTitleId?: number;
   cityId?: number;
+  extractedSkills?: string[];
+  extractedExperience?: string[];
+  extractedRemote?: string[];
 }
 
 export interface JobTitle {

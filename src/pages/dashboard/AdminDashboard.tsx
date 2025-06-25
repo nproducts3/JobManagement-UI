@@ -115,16 +115,24 @@ const AdminDashboard = () => {
 
   const handleSaveUser = async (data: Partial<User>) => {
     if (!editUser) return;
+    // Defensive: Ensure organizationId and roleId are present
+    let orgId = (data as any).organizationId || (organizations[0]?.id ?? '');
+    let roleId = (data as any).roleId || '';
+    if (!orgId || !roleId) {
+      toast({ title: 'Error', description: 'Organization and Role are required.' });
+      return;
+    }
     try {
+      // Map to camelCase for backend UserDTO
       const userData = {
-        first_name: data.firstName || '',
-        last_name: data.lastName || '',
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
         email: data.email || '',
-        phone_number: data.phoneNumber || '',
-        profile_picture: data.profilePicture || '',
-        role_id: (data as any).roleId || '',
-        organization_id: (data as any).organizationId || '',
-        email_verified: data.email_verified ?? editUser.email_verified ?? false,
+        phoneNumber: data.phoneNumber || '',
+        profilePicture: data.profilePicture || '',
+        roleId: roleId,
+        organizationId: orgId,
+        emailVerified: data.emailVerified ?? editUser.emailVerified ?? false,
         disabled: data.disabled ?? editUser.disabled ?? false,
         username: editUser.username,
       };

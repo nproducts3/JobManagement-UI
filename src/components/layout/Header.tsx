@@ -35,7 +35,7 @@ export const Header = () => {
               EnsarJob
             </Link>
             <nav className="ml-8 flex space-x-4">
-              <Link to="/jobs" className="text-gray-600 hover:text-gray-900">
+              <Link to="/google-jobs" className="text-gray-600 hover:text-gray-900">
                 Jobs
               </Link>
             </nav>

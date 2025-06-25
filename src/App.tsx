@@ -17,7 +17,6 @@ import SetPassword from "./pages/auth/SetPassword";
 import CreateUser from "./pages/CreateUser";
 import JobSeekerDashboard from "./pages/dashboard/JobSeekerDashboard";
 import EmployerDashboard from "./pages/dashboard/EmployerDashboard";
-import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import JobSeekerSettings from "./pages/settings/JobSeekerSettings";
 import Profile from "./pages/Profile";
@@ -41,11 +40,11 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
-            <Route path="/jobs" element={<Layout><JobsList /></Layout>} />
+            <Route path="/google-jobs" element={<Layout><JobsList /></Layout>} />
             <Route path="/google-jobs/:id" element={<Layout><JobDetails /></Layout>} />
             <Route path="/dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/employer-dashboard" element={<Layout><EmployerDashboard /></Layout>} />
-            <Route path="/employee-dashboard" element={<Layout><EmployeeDashboard /></Layout>} />
+            <Route path="/employee-dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
             <Route path="/settings" element={<Layout><JobSeekerSettings /></Layout>} />
             <Route path="/profile" element={<Layout><Profile /></Layout>} />

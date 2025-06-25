@@ -72,8 +72,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+      const formData = new FormData();
+      formData.append('file', file);
     formData.append('googlejob_id', 'user_profile_resume');
 
     const xhr = new XMLHttpRequest();
@@ -190,11 +190,11 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
               <p className="text-lg font-medium">Uploading your resume...</p>
               <Progress value={progress} className="mt-4" />
               <p className="mt-2 text-sm text-gray-500">{Math.round(progress)}%</p>
-            </div>
-          )}
+              </div>
+            )}
 
           {(uploadState === 'uploaded' || uploadState === 'error') && resume && (
-            <div className="space-y-4">
+      <div className="space-y-4">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <FileText className="h-6 w-6 text-gray-500" />
@@ -205,21 +205,21 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                  <div className="flex gap-2">
                   <Button variant="ghost" size="icon" onClick={() => handleDownload(resume)}>
                     <Download className="h-5 w-5" />
-                  </Button>
+                    </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDelete(resume.id)}>
                     <Trash2 className="h-5 w-5" />
-                  </Button>
+                    </Button>
+                  </div>
                 </div>
-              </div>
               <div className="flex justify-center mt-4">
                 <Button variant="outline" onClick={() => document.getElementById('resume-upload-input')?.click()}>
                   Update resume
                 </Button>
               </div>
-            </div>
+                  </div>
           )}
 
           {/* Hidden file input */}
@@ -230,8 +230,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
             onChange={handleFileUpload}
             style={{ display: 'none' }}
           />
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
       {/* ATS Tips */}
       <Card>

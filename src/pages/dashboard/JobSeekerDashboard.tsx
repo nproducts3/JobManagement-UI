@@ -37,12 +37,12 @@ const JobSeekerDashboard = () => {
           const jobSeeker: JobSeeker = {
             id: jobSeekerData.id || '',
             user_id: jobSeekerData.user_id,
-            first_name: jobSeekerData.first_name,
-            last_name: jobSeekerData.last_name,
+            firstName: jobSeekerData.first_name,
+            lastName: jobSeekerData.last_name,
             location: jobSeekerData.location,
             phone: jobSeekerData.phone,
-            desired_salary: jobSeekerData.desired_salary,
-            preferred_job_types: jobSeekerData.preferred_job_types,
+            desiredSalary: jobSeekerData.desired_salary,
+            preferredJobTypes: jobSeekerData.preferred_job_types,
           };
           setProfile(jobSeeker);
         }
@@ -71,7 +71,7 @@ const JobSeekerDashboard = () => {
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
-            <Button onClick={() => navigate('/jobs')}>Find Jobs</Button>
+            <Button onClick={() => navigate('/google-jobs')}>Find Jobs</Button>
           </div>
         </div>
 

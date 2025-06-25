@@ -82,13 +82,13 @@ export const UserProfile = () => {
           </div>
         </div>
         
-        {user.created_at && (
+        {user.createdDateTime && (
           <div className="flex items-center space-x-3">
             <Calendar className="h-5 w-5 text-gray-500" />
             <div>
               <p className="text-sm font-medium">Member since</p>
               <p className="text-sm text-gray-600">
-                {new Date(user.created_at).toLocaleDateString()}
+                {new Date(user.createdDateTime).toLocaleDateString()}
               </p>
             </div>
           </div>

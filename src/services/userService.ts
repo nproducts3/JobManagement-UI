@@ -1,4 +1,3 @@
-
 const BASE_URL = 'http://localhost:8080/api';
 
 export interface UserData {
@@ -6,16 +5,16 @@ export interface UserData {
   username: string;
   email: string;
   password?: string;
-  first_name: string;
-  last_name: string;
-  phone_number?: string;
-  profile_picture?: string;
-  role_id: string;
-  organization_id: string;
-  email_verified?: boolean;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  profilePicture?: string;
+  roleId: string;
+  organizationId: string;
+  emailVerified?: boolean;
   disabled?: boolean;
-  created_at?: string;
-  last_login?: string;
+  createdDateTime?: string;
+  lastLogin?: string;
 }
 
 export const userService = {
