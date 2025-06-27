@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Eye, Calendar, ArrowRight } from 'lucide-react';
 import { JobSeeker } from '@/types/api';
+import { jobSeekerService } from '@/services/jobSeekerService';
 
 const CandidatesTab = () => {
   const [candidates, setCandidates] = useState<JobSeeker[]>([]);
@@ -15,25 +16,78 @@ const CandidatesTab = () => {
     fetchCandidates();
   }, []);
 
+  useEffect(() => {
+    console.log('Candidates state updated:', candidates);
+  }, [candidates]);
+
   const fetchCandidates = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/job-seekers', {
+      console.log('Fetching candidates...');
+      
+      // First try to fetch from job-seekers endpoint
+      try {
+        const data = await jobSeekerService.getAll();
+        console.log('Fetched candidates from job-seekers:', data);
+        
+        // Transform JobSeekerData to JobSeeker format
+        const transformedCandidates: JobSeeker[] = data.map(item => ({
+          id: item.id || '',
+          user_id: item.user_id,
+          firstName: item.first_name,
+          lastName: item.last_name,
+          location: item.location,
+          phone: item.phone,
+          desiredSalary: item.desired_salary,
+          preferredJobTypes: item.preferred_job_types,
+        }));
+        
+        setCandidates(transformedCandidates);
+        console.log('Final candidates array:', transformedCandidates);
+        return;
+      } catch (jobSeekerError) {
+        console.log('Job-seekers endpoint failed, trying users endpoint:', jobSeekerError);
+      }
+      
+      // Fallback: fetch users with job seeker role
+      const response = await fetch('http://localhost:8080/api/users', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       
       if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched candidates:', data);
-        setCandidates(data);
+        const users = await response.json();
+        console.log('Fetched users:', users);
+        
+        // Filter users with job seeker role and transform to JobSeeker format
+        const jobSeekerUsers = users.filter((user: any) => 
+          user.roleId === 'ROLE_JOBSEEKER' || 
+          user.role?.roleName === 'ROLE_JOBSEEKER' ||
+          user.role?.id === 'ROLE_JOBSEEKER'
+        );
+        
+        console.log('Job seeker users:', jobSeekerUsers);
+        
+        const transformedCandidates: JobSeeker[] = jobSeekerUsers.map((user: any) => ({
+          id: user.id || '',
+          user_id: user.id || '',
+          firstName: user.firstName || user.first_name,
+          lastName: user.lastName || user.last_name,
+          location: 'Location not specified',
+          phone: user.phoneNumber || user.phone,
+          desiredSalary: 'Not specified',
+          preferredJobTypes: 'Job Seeker',
+        }));
+        
+        setCandidates(transformedCandidates);
       } else {
-        console.error('Failed to fetch candidates:', response.statusText);
+        console.error('Failed to fetch users:', response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch candidates:', error);
     } finally {
       setIsLoading(false);
+      console.log('Candidates loading finished. Total candidates:', candidates.length);
     }
   };
 
@@ -80,6 +134,8 @@ const CandidatesTab = () => {
            location.includes(searchLower) || 
            jobTypes.includes(searchLower);
   });
+
+  console.log('Rendering CandidatesTab - candidates:', candidates.length, 'filtered:', filteredCandidates.length);
 
   if (isLoading) {
     return <div className="text-center py-8">Loading candidates...</div>;
@@ -151,12 +207,12 @@ const CandidatesTab = () => {
                         {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Part-time') && (
                           <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">Part-time</Badge>
                         )}
-                            {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Internship') && (
+                        {candidate.preferredJobTypes && candidate.preferredJobTypes.includes('Internship') && (
                           <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">Internship</Badge>
                         )}
-                          {!candidate.preferredJobTypes && (
-                            <Badge variant="outline" className="text-xs">Job Seeker</Badge>
-                          )}
+                        {!candidate.preferredJobTypes && (
+                          <Badge variant="outline" className="text-xs">Job Seeker</Badge>
+                        )}
                       </div>
                       {/* End Jobseeker Type Badges */}
                       <p className="text-gray-600 mb-1">{candidate.preferredJobTypes || 'Job Seeker'}</p>

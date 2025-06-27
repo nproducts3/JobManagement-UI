@@ -92,6 +92,18 @@ const JobsList = () => {
     setSearchParams({ ...Object.fromEntries(searchParams.entries()), page: currentPage.toString() });
   }, [currentPage]);
 
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm) {
+        // Reset to page 1 when searching
+        setSearchParams({ ...Object.fromEntries(searchParams.entries()), page: '1' });
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setSearchParams]);
+
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
@@ -132,6 +144,17 @@ const JobsList = () => {
     setSelectedSkills([]);
     setSalaryRange([0]);
     setSearchTerm('');
+    setSearchParams({ page: '1' });
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return searchTerm || 
+           Object.values(jobTypeFilters).some(Boolean) ||
+           Object.values(experienceFilters).some(Boolean) ||
+           Object.values(remoteFilters).some(Boolean) ||
+           selectedSkills.length > 0 ||
+           salaryRange[0] > 0;
   };
 
   const totalPages = Math.ceil(totalJobs / JOBS_PER_PAGE);
@@ -139,6 +162,114 @@ const JobsList = () => {
   const handlePageChange = (pageNum: number) => {
     setSearchParams({ ...Object.fromEntries(searchParams.entries()), page: pageNum.toString() });
   };
+
+  // Filter jobs based on all filter criteria
+  const filteredJobs = jobs.filter(job => {
+    const companyName = job.companyName || '';
+    const jobTitle = job.title || '';
+    const location = job.location || '';
+    const description = job.description || '';
+    const qualifications = job.qualifications || '';
+    const scheduleType = job.scheduleType || '';
+    
+    // Search term filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const searchText = `${jobTitle} ${companyName} ${location}`.toLowerCase();
+      if (!searchText.includes(searchLower)) {
+        return false;
+      }
+    }
+
+    // Job type filter
+    const hasJobTypeFilter = Object.values(jobTypeFilters).some(Boolean);
+    if (hasJobTypeFilter) {
+      const jobTypeMatches = Object.entries(jobTypeFilters).some(([key, checked]) => {
+        if (!checked) return false;
+        const scheduleLower = scheduleType.toLowerCase();
+        switch (key) {
+          case 'fullTime': return scheduleLower.includes('full-time') || scheduleLower.includes('full time');
+          case 'partTime': return scheduleLower.includes('part-time') || scheduleLower.includes('part time');
+          case 'contract': return scheduleLower.includes('contract');
+          case 'internship': return scheduleLower.includes('internship');
+          default: return false;
+        }
+      });
+      if (!jobTypeMatches) return false;
+    }
+
+    // Experience level filter
+    const hasExperienceFilter = Object.values(experienceFilters).some(Boolean);
+    if (hasExperienceFilter) {
+      const experienceMatches = Object.entries(experienceFilters).some(([key, checked]) => {
+        if (!checked) return false;
+        const text = `${qualifications} ${description}`.toLowerCase();
+        switch (key) {
+          case 'entryLevel': return text.includes('entry') || text.includes('junior') || text.includes('0-2 years') || text.includes('0-1 years');
+          case 'midLevel': return text.includes('mid') || text.includes('3-5 years') || text.includes('2-5 years');
+          case 'seniorLevel': return text.includes('senior') || text.includes('lead') || text.includes('5+ years') || text.includes('5-10 years');
+          case 'executive': return text.includes('manager') || text.includes('director') || text.includes('vp') || text.includes('cto') || text.includes('ceo');
+          default: return false;
+        }
+      });
+      if (!experienceMatches) return false;
+    }
+
+    // Remote filter
+    const hasRemoteFilter = Object.values(remoteFilters).some(Boolean);
+    if (hasRemoteFilter) {
+      const remoteMatches = Object.entries(remoteFilters).some(([key, checked]) => {
+        if (!checked) return false;
+        const locationLower = location.toLowerCase();
+        const descLower = description.toLowerCase();
+        const scheduleLower = scheduleType.toLowerCase();
+        switch (key) {
+          case 'remote': return locationLower.includes('remote') || descLower.includes('remote') || scheduleLower.includes('remote');
+          case 'hybrid': return locationLower.includes('hybrid') || descLower.includes('hybrid') || scheduleLower.includes('hybrid');
+          case 'onsite': return !locationLower.includes('remote') && !locationLower.includes('hybrid') && 
+                              !descLower.includes('remote') && !descLower.includes('hybrid') &&
+                              !scheduleLower.includes('remote') && !scheduleLower.includes('hybrid');
+          default: return false;
+        }
+      });
+      if (!remoteMatches) return false;
+    }
+
+    // Skills filter
+    if (selectedSkills.length > 0) {
+      const jobSkills = job.extractedSkills || [];
+      const hasRequiredSkill = selectedSkills.some(skill => 
+        jobSkills.some(jobSkill => jobSkill.toLowerCase().includes(skill.toLowerCase()))
+      );
+      if (!hasRequiredSkill) return false;
+    }
+
+    // Salary filter (basic implementation)
+    if (salaryRange[0] > 0) {
+      // This is a simplified salary filter - in a real app you'd parse salary ranges
+      // For now, we'll just check if salary exists
+      if (!job.salary) return false;
+    }
+
+    return true;
+  });
+
+  // Sort filtered jobs
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    switch (sortBy) {
+      case 'date':
+        const dateA = new Date(a.createdDateTime || a.postedAt || 0);
+        const dateB = new Date(b.createdDateTime || b.postedAt || 0);
+        return dateB.getTime() - dateA.getTime();
+      case 'salary':
+        // Simplified salary sorting - in real app you'd parse salary ranges
+        return (b.salary || '').localeCompare(a.salary || '');
+      case 'relevance':
+      default:
+        // Default relevance sorting (could be based on match percentage)
+        return 0;
+    }
+  });
 
   if (isLoading) {
     return (
@@ -159,10 +290,17 @@ const JobsList = () => {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <FilterIcon className="h-5 w-5" />
                   Filters
+                  {hasActiveFilters() && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      Active
+                    </Badge>
+                  )}
                 </CardTitle>
-                <Button variant="ghost" size="sm" onClick={resetFilters}>
-                  Reset
-                </Button>
+                {hasActiveFilters() && (
+                  <Button variant="ghost" size="sm" onClick={resetFilters}>
+                    Reset
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -285,9 +423,11 @@ const JobsList = () => {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold mb-2">
-              {jobs.length} Jobs Found
+              {hasActiveFilters() ? `${sortedJobs.length} of ${totalJobs}` : totalJobs} Jobs Found
             </h1>
-            <p className="text-gray-600">Based on your search criteria</p>
+            <p className="text-gray-600">
+              {hasActiveFilters() ? 'Filtered results' : 'All available jobs'}
+            </p>
           </div>
 
           {/* Search and Sort */}
@@ -318,7 +458,7 @@ const JobsList = () => {
 
           {/* Jobs List */}
           <div className="space-y-4">
-            {jobs.map((job) => {
+            {sortedJobs.map((job) => {
               const matchPercentage = getMatchPercentage();
               const companyName = job.companyName || 'Unknown Company';
               const jobTitle = job.title || 'Unknown Position';
@@ -461,7 +601,7 @@ const JobsList = () => {
             </div>
           )}
 
-          {jobs.length === 0 && !isLoading && (
+          {sortedJobs.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">No jobs found matching your search.</p>
             </div>

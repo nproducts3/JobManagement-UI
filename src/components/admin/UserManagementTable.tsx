@@ -5,18 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { User, Role } from '@/types/api';
+import { User, Role, Organization } from '@/types/api';
 import { MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { roleService, RoleData } from '@/services/roleService';
 
 interface UserManagementTableProps {
   users: User[];
+  organizations: Organization[];
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
 }
 
-export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserManagementTableProps) => {
+export const UserManagementTable = ({ users, organizations, onEditUser, onDeleteUser }: UserManagementTableProps) => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const { toast } = useToast();
@@ -88,6 +89,11 @@ export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserMan
     return ROLE_LABELS[roleId] || roleId;
   };
 
+  const getOrganizationName = (organizationId: string) => {
+    const organization = organizations.find(org => org.id === organizationId);
+    return organization?.name || organization?.domain || 'N/A';
+  };
+
   return (
     <div className="w-full">
       <Table>
@@ -134,7 +140,7 @@ export const UserManagementTable = ({ users, onEditUser, onDeleteUser }: UserMan
                 {user.phoneNumber || 'N/A'}
               </TableCell>
               <TableCell className="text-gray-600">
-                Default Organization
+                {getOrganizationName(user.organizationId)}
               </TableCell>
               <TableCell>
                 {(() => {

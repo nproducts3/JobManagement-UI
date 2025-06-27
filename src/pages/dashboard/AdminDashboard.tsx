@@ -84,8 +84,8 @@ const AdminDashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setJobs(data);
-        setStats(prev => ({ ...prev, totalJobs: data.length }));
+        setJobs(Array.isArray(data.content) ? data.content : []);
+        setStats(prev => ({ ...prev, totalJobs: data.totalElements || 0 }));
       }
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
@@ -253,6 +253,7 @@ const AdminDashboard = () => {
           </div> */}
           <UserManagementTable
             users={users}
+            organizations={organizations}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
           />

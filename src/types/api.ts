@@ -9,6 +9,7 @@ export interface User {
   roleId: string;
   role: Role;
   organizationId: string;
+  organization: Organization;
   emailVerified?: boolean;
   disabled: boolean;
   createdDateTime?: string;
@@ -104,6 +105,7 @@ export interface GoogleJob {
   extractedSkills?: string[];
   extractedExperience?: string[];
   extractedRemote?: string[];
+  createdDateTime?: string;
 }
 
 export interface JobTitle {

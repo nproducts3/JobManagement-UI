@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -20,11 +19,23 @@ const Landing = () => {
 
   const fetchFeaturedJobs = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/google-jobs');
+      const response = await fetch('http://localhost:8080/api/google-jobs?page=0&size=20');
       if (response.ok) {
         const data = await response.json();
-        // Get first 4 jobs for featured section
-        setFeaturedJobs(data.slice(0, 4));
+        
+        // Handle paginated response structure
+        const jobsArray = Array.isArray(data.content) ? data.content : [];
+        
+        // Sort by created date (newest first) and take latest 4 jobs
+        const sortedJobs = jobsArray.sort((a, b) => {
+          const dateA = new Date(a.createdDateTime || a.postedAt || 0);
+          const dateB = new Date(b.createdDateTime || b.postedAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setFeaturedJobs(sortedJobs.slice(0, 4)); // Get latest 4 jobs
+      } else {
+        console.error('Failed to fetch featured jobs:', response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch featured jobs:', error);

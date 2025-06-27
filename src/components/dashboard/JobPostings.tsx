@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,7 @@ const JobPostingsTab = () => {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/google-jobs', {
+      const response = await fetch('http://localhost:8080/api/google-jobs?page=0&size=20', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -26,7 +25,20 @@ const JobPostingsTab = () => {
       if (response.ok) {
         const data = await response.json();
         console.log('Fetched jobs:', data);
-        setJobs(data.slice(0, 10)); // Limit to 10 jobs for dashboard
+        
+        // Handle paginated response structure
+        const jobsArray = Array.isArray(data.content) ? data.content : [];
+        
+        // Sort by created date (newest first) and take latest 4 jobs
+        const sortedJobs = jobsArray.sort((a, b) => {
+          const dateA = new Date(a.createdDateTime || a.postedAt || 0);
+          const dateB = new Date(b.createdDateTime || b.postedAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setJobs(sortedJobs.slice(0, 4)); // Get latest 4 jobs
+      } else {
+        console.error('Failed to fetch jobs:', response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
