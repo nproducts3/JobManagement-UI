@@ -27,7 +27,7 @@ const Register = () => {
 
   useEffect(() => {
     roleService.getAll().then((data) => {
-      const jobSeekerRole = data.find(r => r.role_name === 'ROLE_JOBSEEKER');
+      const jobSeekerRole = data.find(r => r.roleName === 'ROLE_JOBSEEKER');
       if (jobSeekerRole && jobSeekerRole.id) {
         setFormData(prev => ({ ...prev, roleId: jobSeekerRole.id! }));
       }

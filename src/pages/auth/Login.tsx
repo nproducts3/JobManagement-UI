@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +17,13 @@ const Login = () => {
   const { login, role } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Firebase login state
+  const [showFirebaseForm, setShowFirebaseForm] = useState(false);
+  const [firebaseEmail, setFirebaseEmail] = useState("");
+  const [firebasePassword, setFirebasePassword] = useState("");
+  const [firebaseToken, setFirebaseToken] = useState("");
+  const [firebaseError, setFirebaseError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +60,18 @@ const Login = () => {
     });
   };
 
+  const handleFirebaseLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFirebaseError("");
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, firebaseEmail, firebasePassword);
+      const idToken = await userCredential.user.getIdToken();
+      setFirebaseToken(idToken);
+    } catch (err: any) {
+      setFirebaseError(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -65,21 +86,21 @@ const Login = () => {
             <h3 className="text-sm font-medium text-blue-900">Demo Login Credentials</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">Job Seeker</span>
+                <span className="text-sm text-blue-700">Admin</span>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleDemoLogin('jobseeker@demo.com')}
+                  onClick={() => { setEmail('bathalanikitha@gmail.com'); setPassword('Nikitha@123'); }}
                 >
                   Use Demo
                 </Button>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">Employer</span>
+                <span className="text-sm text-blue-700">Job Seeker</span>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleDemoLogin('employer@demo.com')}
+                  onClick={() => { setEmail('admin@ensarsolutions.com'); setPassword('Admin@123'); }}
                 >
                   Use Demo
                 </Button>
@@ -89,24 +110,14 @@ const Login = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleDemoLogin('employee@demo.com')}
-                >
-                  Use Demo
-                </Button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">Admin</span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleDemoLogin('admin@demo.com')}
+                  onClick={() => { setEmail('swaroop@ensarsolutions.com'); setPassword('Swaroop@123'); }}
                 >
                   Use Demo
                 </Button>
               </div>
             </div>
             <Badge variant="secondary" className="text-xs">
-              Password: demo123
+              Use the above email and password for each role
             </Badge>
           </div>
 
@@ -138,18 +149,19 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
-            </div>
+          {/* Firebase Login Option */}
+          <div className="flex flex-col items-center mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mb-2"
+              onClick={() => navigate('/firebase-login')}
+            >
+              Login with Firebase
+            </Button>
           </div>
 
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-            Sign in with Google
-          </Button>
+  
 
           <div className="text-center space-y-2">
             <Link

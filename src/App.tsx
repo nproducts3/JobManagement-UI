@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import JobSeekerSettings from "./pages/settings/JobSeekerSettings";
 import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import NotFound from "./pages/NotFound";
+import FirebaseLogin from "./pages/auth/FirebaseLogin";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/settings" element={<Layout><JobSeekerSettings /></Layout>} />
             <Route path="/profile" element={<Layout><Profile /></Layout>} />
             <Route path="/post-job" element={<Layout><PostJob /></Layout>} />
+            <Route path="/firebase-login" element={<FirebaseLogin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

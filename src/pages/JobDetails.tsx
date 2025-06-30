@@ -1,257 +1,3 @@
-
-// import { useState, useEffect } from 'react';
-// import { useParams, Link } from 'react-router-dom';
-// import { Button } from '@/components/ui/button';
-// import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { Badge } from '@/components/ui/badge';
-// import { Separator } from '@/components/ui/separator';
-// import { MapPin, Building, Clock, ExternalLink, ArrowLeft } from 'lucide-react';
-// import { GoogleJob } from '@/types/api';
-// import { useAuth } from '@/contexts/AuthContext';
-
-// const JobDetails = () => {
-//   const { id } = useParams<{ id: string }>();
-//   const [job, setJob] = useState<GoogleJob | null>(null);
-//   const [isLoading, setIsLoading] = useState(true);
-//   const { isAuthenticated, role } = useAuth();
-
-//   useEffect(() => {
-//     if (id) {
-//       fetchJobDetails(id);
-//     }
-//   }, [id]);
-
-//   const fetchJobDetails = async (jobId: string) => {
-//     try {
-//       const response = await fetch(`/api/google-jobs/${jobId}`);
-//       if (response.ok) {
-//         const data = await response.json();
-//         setJob(data);
-//       }
-//     } catch (error) {
-//       console.error('Failed to fetch job details:', error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   const handleApply = () => {
-//     if (job?.applyLinks) {
-//       window.open(job.applyLinks, '_blank');
-//     }
-//   };
-
-//   if (isLoading) {
-//     return (
-//       <div className="min-h-screen flex items-center justify-center">
-//         <div className="text-lg">Loading job details...</div>
-//       </div>
-//     );
-//   }
-
-//   if (!job) {
-//     return (
-//       <div className="min-h-screen flex items-center justify-center">
-//         <div className="text-center">
-//           <h2 className="text-2xl font-bold mb-4">Job Not Found</h2>
-//           <Link to="/jobs">
-//             <Button>Back to Jobs</Button>
-//           </Link>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="container mx-auto px-4 py-8">
-//       <div className="max-w-4xl mx-auto">
-//         {/* Back Button */}
-//         <Button variant="ghost" asChild className="mb-6">
-//           <Link to="/jobs">
-//             <ArrowLeft className="h-4 w-4 mr-2" />
-//             Back to Jobs
-//           </Link>
-//         </Button>
-
-//         {/* Job Header */}
-//         <Card className="mb-6">
-//           <CardHeader>
-//             <div className="flex justify-between items-start">
-//               <div className="flex-1">
-//                 <CardTitle className="text-3xl mb-2">{job.title}</CardTitle>
-//                 <CardDescription className="flex items-center gap-4 text-lg">
-//                   <span className="flex items-center gap-2">
-//                     <Building className="h-5 w-5" />
-//                     {job.companyName}
-//                   </span>
-//                   {job.location && (
-//                     <span className="flex items-center gap-2">
-//                       <MapPin className="h-5 w-5" />
-//                       {job.location}
-//                     </span>
-//                   )}
-//                   {job.postedAt && (
-//                     <span className="flex items-center gap-2">
-//                       <Clock className="h-5 w-5" />
-//                       {job.postedAt}
-//                     </span>
-//                   )}
-//                 </CardDescription>
-//               </div>
-//               <div className="flex flex-col gap-3">
-//                 {job.salary && (
-//                   <Badge variant="secondary" className="text-lg px-3 py-1">
-//                     {job.salary}
-//                   </Badge>
-//                 )}
-//                 <div className="flex gap-2">
-//                   <Button onClick={handleApply} size="lg">
-//                     Apply Now
-//                     <ExternalLink className="h-4 w-4 ml-2" />
-//                   </Button>
-//                   {isAuthenticated && role?.roleName === 'ROLE_JOBSEEKER' && (
-//                     <Button variant="outline" size="lg">
-//                       Save Job
-//                     </Button>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-//           </CardHeader>
-//         </Card>
-
-//         <div className="grid md:grid-cols-3 gap-6">
-//           {/* Main Content */}
-//           <div className="md:col-span-2 space-y-6">
-//             {/* Job Description */}
-//             {job.description && (
-//               <Card>
-//                 <CardHeader>
-//                   <CardTitle>Job Description</CardTitle>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="prose max-w-none">
-//                     {job.description.split('\n').map((paragraph, index) => (
-//                       <p key={index} className="mb-4">
-//                         {paragraph}
-//                       </p>
-//                     ))}
-//                   </div>
-//                 </CardContent>
-//               </Card>
-//             )}
-
-//             {/* Responsibilities */}
-//             {job.responsibilities && Array.isArray(job.responsibilities) && job.responsibilities.length > 0 && (
-//               <Card>
-//                 <CardHeader>
-//                   <CardTitle>Responsibilities</CardTitle>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <ul className="list-disc pl-6 space-y-2">
-//                     {job.responsibilities.map((responsibility, index) => (
-//                       <li key={index}>{responsibility}</li>
-//                     ))}
-//                   </ul>
-//                 </CardContent>
-//               </Card>
-//             )}
-
-//             {/* Qualifications */}
-//             {job.qualifications && (
-//               <Card>
-//                 <CardHeader>
-//                   <CardTitle>Qualifications</CardTitle>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <div className="prose max-w-none">
-//                     {job.qualifications.split('\n').map((line, index) => (
-//                       <p key={index} className="mb-2">
-//                         {line}
-//                       </p>
-//                     ))}
-//                   </div>
-//                 </CardContent>
-//               </Card>
-//             )}
-
-//             {/* Benefits */}
-//             {job.benefits && Array.isArray(job.benefits) && job.benefits.length > 0 && (
-//               <Card>
-//                 <CardHeader>
-//                   <CardTitle>Benefits</CardTitle>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <ul className="list-disc pl-6 space-y-2">
-//                     {job.benefits.map((benefit, index) => (
-//                       <li key={index}>{benefit}</li>
-//                     ))}
-//                   </ul>
-//                 </CardContent>
-//               </Card>
-//             )}
-//           </div>
-
-//           {/* Sidebar */}
-//           <div className="space-y-6">
-//             {/* Job Details */}
-//             <Card>
-//               <CardHeader>
-//                 <CardTitle>Job Details</CardTitle>
-//               </CardHeader>
-//               <CardContent className="space-y-4">
-//                 {job.scheduleType && (
-//                   <div>
-//                     <h4 className="font-medium mb-1">Schedule</h4>
-//                     <Badge variant="outline">{job.scheduleType}</Badge>
-//                   </div>
-//                 )}
-//                 {job.via && (
-//                   <div>
-//                     <h4 className="font-medium mb-1">Source</h4>
-//                     <p className="text-sm text-gray-600">via {job.via}</p>
-//                   </div>
-//                 )}
-//                 {job.shareLink && (
-//                   <div>
-//                     <h4 className="font-medium mb-1">Share</h4>
-//                     <Button 
-//                       variant="outline" 
-//                       size="sm" 
-//                       onClick={() => navigator.clipboard.writeText(job.shareLink || '')}
-//                     >
-//                       Copy Link
-//                     </Button>
-//                   </div>
-//                 )}
-//               </CardContent>
-//             </Card>
-
-//             {/* Quick Apply */}
-//             {isAuthenticated && role?.roleName === 'ROLE_JOBSEEKER' && (
-//               <Card>
-//                 <CardHeader>
-//                   <CardTitle>Quick Apply</CardTitle>
-//                   <CardDescription>Apply with your saved resume</CardDescription>
-//                 </CardHeader>
-//                 <CardContent>
-//                   <Button className="w-full" size="lg">
-//                     Apply with Resume
-//                   </Button>
-//                 </CardContent>
-//               </Card>
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default JobDetails;
-
-
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -262,18 +8,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Building, Clock, Star, ArrowLeft, Share, Bookmark } from 'lucide-react';
 import { GoogleJob } from '@/types/api';
 import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 
 const JobDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<GoogleJob | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, role } = useAuth();
+  const [similarJobs, setSimilarJobs] = useState<GoogleJob[]>([]);
 
   useEffect(() => {
     if (id) {
       fetchJobDetails(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (job && job.id) {
+      fetchSimilarJobs(job.id, job.title, job.companyName);
+    }
+  }, [job]);
 
   const fetchJobDetails = async (jobId: string) => {
     try {
@@ -299,9 +53,60 @@ const JobDetails = () => {
     }
   };
 
+  const fetchSimilarJobs = async (jobId: string, title?: string, companyName?: string) => {
+    try {
+      // Fetch all jobs and filter for similar ones (by title or company, not the current job)
+      const response = await fetch('http://localhost:8080/api/google-jobs?page=0&size=20');
+      if (response.ok) {
+        const data = await response.json();
+        const jobsArray = Array.isArray(data.content) ? data.content : [];
+        const filtered = jobsArray.filter(
+          (j: GoogleJob) =>
+            j.id !== jobId &&
+            (j.title === title || j.companyName === companyName)
+        );
+        setSimilarJobs(filtered.slice(0, 3)); // Show top 3 similar jobs
+      }
+    } catch (error) {
+      console.error('Failed to fetch similar jobs:', error);
+    }
+  };
+
   const handleApplyNow = () => {
+    let url: string | undefined;
+
     if (job?.applyLinks) {
-      window.open(job.applyLinks, '_blank');
+      // If it's a JSON array string, parse it
+      let links: string[] = [];
+      if (typeof job.applyLinks === 'string') {
+        try {
+          const parsed = JSON.parse(job.applyLinks);
+          if (Array.isArray(parsed)) {
+            links = parsed;
+          } else {
+            links = [job.applyLinks];
+          }
+        } catch {
+          // Not a JSON array, treat as single string
+          links = [job.applyLinks];
+        }
+      } else if (Array.isArray(job.applyLinks)) {
+        links = job.applyLinks;
+      }
+
+      url = links[0]; // Use the first link
+
+      if (url) {
+        url = url.trim();
+        if (!/^https?:\/\//i.test(url)) {
+          url = 'https://' + url.replace(/^\/+/, '');
+        }
+        window.open(url, '_blank');
+      } else {
+        alert('No application link is available for this job.');
+      }
+    } else {
+      alert('No application link is available for this job.');
     }
   };
 
@@ -311,6 +116,42 @@ const JobDetails = () => {
     experience: 85,
     education: 80
   });
+
+  // Utility function to parse description/qualifications into nested lists with headings
+  function parseDescriptionToList(description: string) {
+    const lines = description.split('\n').map(line => line.trim()).filter(Boolean);
+    const result: React.ReactNode[] = [];
+    let currentList: string[] = [];
+    let currentHeading: string | null = null;
+
+    const pushList = () => {
+      if (currentList.length > 0) {
+        result.push(
+          <ul className="list-disc pl-6 space-y-2 text-gray-700" key={Math.random()}>
+            {currentList.map((item, idx) => <li key={idx}>{item.replace(/^\u2022\s*/, '')}</li>)}
+          </ul>
+        );
+        currentList = [];
+      }
+    };
+
+    lines.forEach((line, idx) => {
+      // Heading detection (e.g., "Responsibilities:", "Requirements:", "Benefits:")
+      if (/^(Responsibilities|Requirements|Benefits)[:：]?$/.test(line)) {
+        pushList();
+        currentHeading && result.push(<br key={`br-${idx}`} />);
+        currentHeading = line.replace(/[:：]$/, '');
+        result.push(<strong key={line + idx} className="block mt-4 mb-2">{currentHeading}</strong>);
+      } else if (line.startsWith('•') || line.startsWith('-')) {
+        currentList.push(line.replace(/^[-•]\s*/, ''));
+      } else {
+        pushList();
+        result.push(<li key={line + idx}>{line}</li>);
+      }
+    });
+    pushList();
+    return result;
+  }
 
   if (isLoading) {
     return (
@@ -402,7 +243,11 @@ const JobDetails = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-3">
-                      <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleApplyNow}>
+                      <Button 
+                        className="bg-blue-600 hover:bg-blue-700" 
+                        onClick={handleApplyNow}
+                        disabled={!job?.applyLinks}
+                      >
                         Apply Now
                       </Button>
                       <Button variant="outline" className="flex items-center gap-2">
@@ -444,41 +289,102 @@ const JobDetails = () => {
                     <div className="space-y-6">
                       <div>
                         <h3 className="text-lg font-semibold mb-3">Job Description</h3>
-                        <p className="text-gray-700 leading-relaxed">
-                          {job.description || "We are looking for a Senior Software Engineer to join our dynamic team and lead development efforts."}
-                        </p>
+                        {job.description && typeof job.description === 'string' ? (
+                          <div className="prose max-w-none">
+                            {parseDescriptionToList(job.description)}
+                          </div>
+                        ) : job.description && Array.isArray(job.description) && job.description.length > 0 ? (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            {job.description.map((desc, index) => (
+                              <li key={index}>{desc}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>We are looking for a Senior Software Engineer to join our dynamic team and lead development efforts.</li>
+                          </ul>
+                        )}
                       </div>
 
                       <div>
                         <h3 className="text-lg font-semibold mb-3">Responsibilities</h3>
-                        <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                          <li>Design, develop, and maintain software applications.</li>
-                          <li>Collaborate with cross-functional teams to define project requirements.</li>
-                          <li>Mentor junior developers.</li>
-                          <li>Conduct code reviews and ensure best practices.</li>
-                        </ul>
+                        {job.responsibilities && Array.isArray(job.responsibilities) && job.responsibilities.length > 0 ? (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            {job.responsibilities.map((responsibility, index) => (
+                              <li key={index}>{responsibility}</li>
+                            ))}
+                          </ul>
+                        ) : job.responsibilities && typeof job.responsibilities === 'string' ? (
+                          <p className="text-gray-700 leading-relaxed">{job.responsibilities}</p>
+                        ) : (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Design, develop, and maintain software applications.</li>
+                            <li>Collaborate with cross-functional teams to define project requirements.</li>
+                            <li>Mentor junior developers.</li>
+                            <li>Conduct code reviews and ensure best practices.</li>
+                          </ul>
+                        )}
                       </div>
 
                       <div>
                         <h3 className="text-lg font-semibold mb-3">Qualifications</h3>
-                        <p className="text-gray-700">
-                          {job.qualifications || "Bachelor's degree in Computer Science or related field. 5+ years experience in software development."}
-                        </p>
+                        {job.qualifications && typeof job.qualifications === 'string' ? (
+                          job.qualifications.includes(',') ? (
+                            <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                              {job.qualifications
+                                .split(',')
+                                .map(line => line.trim())
+                                .filter(line => line)
+                                .map((line, index) => (
+                                  <li key={index}>{line}</li>
+                                ))}
+                            </ul>
+                          ) : (
+                            <div className="prose max-w-none">
+                              {parseDescriptionToList(job.qualifications)}
+                            </div>
+                          )
+                        ) : job.qualifications && Array.isArray(job.qualifications) && job.qualifications.length > 0 ? (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            {job.qualifications.map((qual, index) => (
+                              <li key={index}>{qual}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Bachelor's degree in Computer Science or related field.</li>
+                            <li>5+ years experience in software development.</li>
+                          </ul>
+                        )}
                       </div>
 
                       <div>
                         <h3 className="text-lg font-semibold mb-3">Benefits</h3>
-                        <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                          <li>Health insurance</li>
-                          <li>401(k) matching</li>
-                          <li>Paid time off</li>
-                          <li>Remote work opportunities</li>
-                        </ul>
+                        {job.benefits && Array.isArray(job.benefits) && job.benefits.length > 0 ? (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            {job.benefits.map((benefit, index) => (
+                              <li key={index}>{benefit}</li>
+                            ))}
+                          </ul>
+                        ) : job.benefits && typeof job.benefits === 'string' ? (
+                          <p className="text-gray-700 leading-relaxed">{job.benefits}</p>
+                        ) : (
+                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                            <li>Health insurance</li>
+                            <li>401(k) matching</li>
+                            <li>Paid time off</li>
+                            <li>Remote work opportunities</li>
+                          </ul>
+                        )}
                       </div>
                     </div>
 
                     <div className="mt-8 pt-6 border-t">
-                      <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleApplyNow}>
+                      <Button 
+                        className="bg-blue-600 hover:bg-blue-700" 
+                        onClick={handleApplyNow}
+                        disabled={!job?.applyLinks}
+                      >
                         Apply Now
                       </Button>
                     </div>
@@ -625,50 +531,58 @@ const JobDetails = () => {
                 <CardTitle>Similar Jobs</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">C</div>
-                    <div>
-                      <h4 className="font-medium text-sm">DevOps Engineer</h4>
-                      <p className="text-xs text-gray-600">CloudTech</p>
+                {similarJobs.length === 0 && <div className="text-sm text-gray-500">No similar jobs found.</div>}
+                {similarJobs.map((job) => (
+                  <div key={job.id} className="border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">
+                        {job.companyName?.charAt(0) || 'C'}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm">{job.title}</h4>
+                        <p className="text-xs text-gray-600">{job.companyName}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Seattle, WA</span>
-                    <Badge variant="outline" className="text-xs">Remote</Badge>
-                  </div>
-                  <div className="text-xs text-blue-600 font-medium mt-1">82% Match</div>
-                </div>
-                
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">C</div>
-                    <div>
-                      <h4 className="font-medium text-sm">Marketing Manager</h4>
-                      <p className="text-xs text-gray-600">Creative Solutions Ltd.</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600">{job.location}</span>
+                      <Badge variant="outline" className="text-xs">{job.scheduleType || 'Full-time'}</Badge>
                     </div>
+                    <Button
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        let url: string | undefined;
+                        if (job.applyLinks) {
+                          let links: string[] = [];
+                          if (typeof job.applyLinks === 'string') {
+                            try {
+                              const parsed = JSON.parse(job.applyLinks);
+                              if (Array.isArray(parsed)) {
+                                links = parsed;
+                              } else {
+                                links = [job.applyLinks];
+                              }
+                            } catch {
+                              links = [job.applyLinks];
+                            }
+                          } else if (Array.isArray(job.applyLinks)) {
+                            links = job.applyLinks;
+                          }
+                          url = links[0];
+                          if (url) {
+                            url = url.trim();
+                            if (!/^https?:\/\//i.test(url)) {
+                              url = 'https://' + url.replace(/^\/+/, '');
+                            }
+                            window.open(url, '_blank');
+                          }
+                        }
+                      }}
+                    >
+                      Apply
+                    </Button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">New York, NY</span>
-                    <Badge variant="outline" className="text-xs">Full-time</Badge>
-                  </div>
-                  <div className="text-xs text-blue-600 font-medium mt-1">88% Match</div>
-                </div>
-                
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">D</div>
-                    <div>
-                      <h4 className="font-medium text-sm">UI/UX Designer</h4>
-                      <p className="text-xs text-gray-600">DesignHub</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Austin, TX</span>
-                    <Badge variant="outline" className="text-xs">Full-time</Badge>
-                  </div>
-                  <div className="text-xs text-blue-600 font-medium mt-1">75% Match</div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           </div>
