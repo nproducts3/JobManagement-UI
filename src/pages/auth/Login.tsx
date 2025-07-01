@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, role } = useAuth();
+  const { login, role, setToken } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,6 +24,9 @@ const Login = () => {
   const [firebasePassword, setFirebasePassword] = useState("");
   const [firebaseToken, setFirebaseToken] = useState("");
   const [firebaseError, setFirebaseError] = useState("");
+
+  const [googleError, setGoogleError] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,11 +56,36 @@ const Login = () => {
     setPassword('demo123');
   };
 
-  const handleGoogleSignIn = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Google Sign-In will be implemented with backend integration.",
-    });
+  const handleGoogleLogin = async () => {
+    setGoogleError("");
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      // Send the token to your backend
+      const response = await fetch("http://localhost:8080/api/auth/firebase-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to authenticate with backend");
+      }
+
+      const data = await response.json();
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+
+      // Redirect to jobseeker dashboard
+      navigate("/dashboard");
+    } catch (err: any) {
+      setGoogleError(err.message || "Google login failed");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const handleFirebaseLogin = async (e: React.FormEvent) => {
@@ -72,6 +100,7 @@ const Login = () => {
     }
   };
 
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -106,7 +135,7 @@ const Login = () => {
                 </Button>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">Employee</span>
+                <span className="text-sm text-blue-700">Employer</span>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -149,19 +178,32 @@ const Login = () => {
             </Button>
           </form>
 
-          {/* Firebase Login Option */}
+          {/* Google Login Option */}
           <div className="flex flex-col items-center mt-4">
             <Button
               type="button"
               variant="outline"
-              className="w-full mb-2"
-              onClick={() => navigate('/firebase-login')}
+              className="w-full mb-2 flex items-center justify-center gap-2"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
             >
-              Login with Firebase
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 488 512"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g>
+                  <path fill="#4285F4" d="M488 261.8c0-17.8-1.6-35-4.6-51.6H249v97.8h134.2c-5.8 31.2-23.2 57.6-49.4 75.4v62h79.8c46.8-43.2 74-107 74-183.6z"/>
+                  <path fill="#34A853" d="M249 492c66.6 0 122.6-22 163.4-59.8l-79.8-62c-22.2 15-50.6 23.8-83.6 23.8-64.2 0-118.6-43.2-138-101.2h-81v63.6C67.8 445.2 152.2 492 249 492z"/>
+                  <path fill="#FBBC05" d="M111 292.8c-10.2-30-10.2-62.6 0-92.6v-63.6h-81C-10.2 180.8-10.2 331.2 111 292.8z"/>
+                  <path fill="#EA4335" d="M249 97.6c36.2 0 68.6 12.4 94.2 36.6l70.6-70.6C371.6 24.2 314.6 0 249 0 152.2 0 67.8 46.8 30 119.2l81 63.6C130.4 140.8 184.8 97.6 249 97.6z"/>
+                </g>
+              </svg>
+              {googleLoading ? "Signing in with Google..." : "Sign in with Google"}
             </Button>
+            {googleError && <div className="text-red-500 text-xs mt-2">{googleError}</div>}
           </div>
-
-  
 
           <div className="text-center space-y-2">
             <Link

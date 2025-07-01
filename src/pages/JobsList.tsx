@@ -130,6 +130,10 @@ const JobsList = () => {
   const handleApplyNow = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     navigate(`/google-jobs/${jobId}`);
   };
 

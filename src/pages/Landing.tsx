@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Users, User, Briefcase, Target, Star, ChevronRight, CheckCircle, TrendingUp, Award, MapPin, Clock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { GoogleJob } from '@/types/api';
+import { Header } from '@/components/layout/Header';
 
 const Landing = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,37 +49,8 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section - Start Your Job Search */}
-            <header className="w-full bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
-           {/* Logo and Site Name */}
-           <div className="flex items-center gap-2">
-            <Briefcase className="h-7 w-7 text-blue-600" />             <span className="text-2xl font-bold text-blue-700">EnsarJob</span>
-           </div>
-           {/* Center Navigation */}
-           <nav>
-             <Link to="/google-jobs" className="text-lg font-medium text-black hover:text-blue-600 transition">
-               Find Jobs
-             </Link>
-           </nav>
-           {/* Auth Buttons */}
-           <div className="flex gap-2">
-             <Button
-               variant="outline"
-               className="border border-gray-300 text-black hover:bg-gray-100"
-               asChild
-             >
-               <Link to="/login">Log In</Link>
-             </Button>
-             <Button
-               className="bg-black text-white hover:bg-gray-800"
-              asChild
-             >
-               <Link to="/register">Sign Up</Link>
-             </Button>
-           </div>
-         </div>
-       </header>
+      <Header />
+
       <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold mb-6">
@@ -186,7 +157,7 @@ const Landing = () => {
                       )}
                       
                       <Button className="w-full bg-gray-900 hover:bg-gray-800" asChild>
-                        <Link to={`${job.id}`}>Apply Now</Link>
+                        <Link to={`/google-jobs/${job.id}`}>Apply Now</Link>
                       </Button>
                     </div>
                   </CardContent>

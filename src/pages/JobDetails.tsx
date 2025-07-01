@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ const JobDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, role } = useAuth();
   const [similarJobs, setSimilarJobs] = useState<GoogleJob[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {
@@ -73,10 +74,12 @@ const JobDetails = () => {
   };
 
   const handleApplyNow = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     let url: string | undefined;
-
     if (job?.applyLinks) {
-      // If it's a JSON array string, parse it
       let links: string[] = [];
       if (typeof job.applyLinks === 'string') {
         try {
@@ -87,15 +90,12 @@ const JobDetails = () => {
             links = [job.applyLinks];
           }
         } catch {
-          // Not a JSON array, treat as single string
           links = [job.applyLinks];
         }
       } else if (Array.isArray(job.applyLinks)) {
         links = job.applyLinks;
       }
-
-      url = links[0]; // Use the first link
-
+      url = links[0];
       if (url) {
         url = url.trim();
         if (!/^https?:\/\//i.test(url)) {
@@ -551,6 +551,10 @@ const JobDetails = () => {
                       size="sm"
                       className="mt-2"
                       onClick={() => {
+                        if (!isAuthenticated) {
+                          navigate('/login');
+                          return;
+                        }
                         let url: string | undefined;
                         if (job.applyLinks) {
                           let links: string[] = [];

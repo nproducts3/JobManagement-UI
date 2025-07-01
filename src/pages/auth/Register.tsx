@@ -38,17 +38,26 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const payload = {
-      ...formData,
-    };
+    const payload = { ...formData };
 
     try {
-      await register(payload);
-      toast({
-        title: "Success",
-        description: "Account created successfully. Please log in.",
-      });
-      navigate('/login');
+      const response = await register(payload);
+      console.log('Register response:', response);
+
+      // Check for redirectPath as a sign of success
+      if (response && response.redirectPath) {
+        toast({
+          title: "Success",
+          description: "Account created successfully. Please log in.",
+        });
+        navigate('/'); // or navigate(response.redirectPath) if you want to use the backend's suggestion
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create account. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",

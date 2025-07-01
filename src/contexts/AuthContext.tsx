@@ -10,6 +10,7 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  setToken: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 interface RegisterData {
@@ -42,6 +43,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [role, setRole] = useState<Role | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- SESSION TIMEOUT LOGIC ---
+  useEffect(() => {
+    const checkSession = () => {
+      const expiresAt = localStorage.getItem("expiresAt");
+      if (expiresAt && Date.now() > parseInt(expiresAt, 10)) {
+        // Session expired
+        localStorage.removeItem("token");
+        localStorage.removeItem("expiresAt");
+        setToken(null);
+        setUser(null);
+        setRole(null);
+        window.location.href = "/login";
+      }
+    };
+
+    checkSession();
+    const interval = setInterval(checkSession, 60 * 1000); // check every minute
+    return () => clearInterval(interval);
+  }, []);
+  // --- END SESSION TIMEOUT LOGIC ---
 
   useEffect(() => {
     if (token) {
@@ -126,6 +148,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('token', authToken);
       setToken(authToken);
 
+      // --- SET SESSION EXPIRATION ---
+      const oneHour = 60 * 60 * 1000;
+      const expiresAt = Date.now() + oneHour;
+      localStorage.setItem("expiresAt", expiresAt.toString());
+      // --- END SESSION EXPIRATION ---
+
       // Set user and role in context
       setUser({ id, email: userEmail, role_id: role } as any); // Adjust as needed for your User type
       setRole({ id: role, roleName: role } as any); // Adjust as needed for your Role type
@@ -180,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     isLoading,
+    setToken,
   };
 
   return (

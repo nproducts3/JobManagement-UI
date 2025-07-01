@@ -136,7 +136,7 @@ const PostJob = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Post on behalf of (optional) */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="employee">Post on behalf of (optional)</Label>
               <Select onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
@@ -150,7 +150,7 @@ const PostJob = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">

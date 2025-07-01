@@ -1,14 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const FirebaseLogin = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleGoogleLogin = async () => {
     setError("");
@@ -42,23 +40,18 @@ const FirebaseLogin = () => {
     }
   };
 
+  useEffect(() => {
+    handleGoogleLogin();
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Sign in with Google</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleGoogleLogin}
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Signing in..." : "Sign in with Google"}
-          </Button>
-          {error && <div className="text-red-500 text-xs mt-2">{error}</div>}
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <div className="text-lg">Redirecting to Google sign-in...</div>
+      ) : error ? (
+        <div className="text-red-500 text-xs mt-2">{error}</div>
+      ) : null}
     </div>
   );
 };

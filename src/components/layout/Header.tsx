@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +10,7 @@ import {
 import { User, LogOut } from 'lucide-react';
 
 export const Header = () => {
-  const { user, role, isAuthenticated, logout } = useAuth();
+  const { user, role, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -25,6 +24,11 @@ export const Header = () => {
     if (role?.roleName === 'ROLE_EMPLOYEE') return '/employee-dashboard';
     return '/dashboard';
   };
+
+  // Prevent header UI flash: don't render until auth state is loaded
+  if (isLoading) {
+    return null; // Or a spinner if you prefer
+  }
 
   return (
     <header className="bg-white shadow-sm border-b">

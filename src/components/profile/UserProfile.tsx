@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -37,10 +36,12 @@ export const UserProfile = () => {
             </AvatarFallback>
           </Avatar>
         </div>
-          <CardTitle className="text-2xl">{user.firstName} {user.lastName}</CardTitle>
+        <CardTitle className="text-2xl">{user.firstName} {user.lastName}</CardTitle>
         <CardDescription>@{user.username}</CardDescription>
         <div className="flex justify-center mt-2">
-          <Badge variant="outline">{getRoleName(user.role.roleName)}</Badge>
+          <Badge variant="outline">
+            {getRoleName(user.role?.roleName || role?.roleName || "Unknown")}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
