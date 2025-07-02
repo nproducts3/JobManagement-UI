@@ -30,6 +30,8 @@ const FirebaseLogin = () => {
       const data = await response.json();
       // Save JWT/token as needed (localStorage, context, etc.)
       localStorage.setItem("token", data.token);
+      // Store userId for AuthContext
+      localStorage.setItem("userId", data.id);
 
       // Redirect to jobseeker dashboard
       navigate("/dashboard");

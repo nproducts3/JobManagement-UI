@@ -82,13 +82,13 @@ const JobPostingsTab = () => {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button 
+          {/* <Button 
             onClick={() => navigate('/post-job')}
             className="bg-black hover:bg-gray-800"
           >
             <Plus className="h-4 w-4 mr-2" />
             Post Job
-          </Button>
+          </Button> */}
         </div>
       </div>
 

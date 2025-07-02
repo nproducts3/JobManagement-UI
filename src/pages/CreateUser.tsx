@@ -100,9 +100,12 @@ const CreateUser = () => {
       });
 
       if (response.ok) {
+        // Map organizationId to organization name for the toast
+        const org = organizations.find(org => org.id === formData.organizationId);
+        const orgName = org?.name || org?.domain || 'N/A';
         toast({
           title: "Success",
-          description: "User created successfully.",
+          description: `User created successfully in organization: ${orgName}`,
         });
         navigate('/admin-dashboard');
       } else {

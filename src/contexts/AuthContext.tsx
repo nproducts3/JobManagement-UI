@@ -75,7 +75,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      // Get userId from localStorage
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setUser(null);
+        setRole(null);
+        setIsLoading(false);
+        return;
+      }
+      const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -83,26 +91,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.ok) {
         const userData = await response.json();
-        console.log('userData', userData);
         setUser(userData);
-        
-        if (userData.role_id) {
-          if (typeof userData.role_id === 'string') {
-            const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.role_id}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-            
-            if (roleResponse.ok) {
-              const roleData = await roleResponse.json();
-              setRole(roleData);
+        if (userData.role && userData.role.roleName) {
+          setRole(userData.role);
+        } else if (userData.roleId) {
+          // Fallback: fetch role by roleId if role object is not present
+          const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.roleId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
             }
-          } else if (typeof userData.role_id === 'object') {
-            setRole(userData.role_id);
+          });
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            setRole(roleData);
+          } else {
+            setRole(null);
           }
         } else {
-          console.error('userData.role_id is undefined!', userData);
           setRole(null);
         }
       } else {
@@ -147,6 +152,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('token', authToken);
       setToken(authToken);
+      // Store userId in localStorage for later use
+      localStorage.setItem('userId', id);
 
       // --- SET SESSION EXPIRATION ---
       const oneHour = 60 * 60 * 1000;
@@ -154,9 +161,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem("expiresAt", expiresAt.toString());
       // --- END SESSION EXPIRATION ---
 
-      // Set user and role in context
-      setUser({ id, email: userEmail, role_id: role } as any); // Adjust as needed for your User type
-      setRole({ id: role, roleName: role } as any); // Adjust as needed for your Role type
+      // Set user and role in context (minimal, will be replaced by fetchUserData)
+      setUser({ id, email: userEmail, roleId: role } as any);
+      setRole({ id: role, roleName: role } as any);
 
       // Redirect based on role
       const redirectPath = getDashboardPath(role);

@@ -78,6 +78,8 @@ const Login = () => {
       const data = await response.json();
       localStorage.setItem("token", data.token);
       setToken(data.token);
+      // Store userId for AuthContext
+      localStorage.setItem("userId", data.id);
 
       // Redirect to jobseeker dashboard
       navigate("/dashboard");
