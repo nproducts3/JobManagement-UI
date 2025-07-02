@@ -408,7 +408,7 @@ const JobDetails = () => {
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-3">Company Reviews</h3>
                     <p className="text-gray-700">
-                      Employee reviews and ratings would be displayed here.
+                      Employer reviews and ratings would be displayed here.
                     </p>
                   </CardContent>
                 </Card>

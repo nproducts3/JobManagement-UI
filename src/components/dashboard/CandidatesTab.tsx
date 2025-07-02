@@ -21,54 +21,18 @@ const CandidatesTab = () => {
   }, [candidates]);
 
   const fetchCandidates = async () => {
+    setIsLoading(true);
     try {
-      console.log('Fetching candidates...');
-      
-      // First try to fetch from job-seekers endpoint
-      try {
-        const data = await jobSeekerService.getAll();
-        console.log('Fetched candidates from job-seekers:', data);
-        
-        // Transform JobSeekerData to JobSeeker format
-        const transformedCandidates: JobSeeker[] = data.map(item => ({
-          id: item.id || '',
-          user_id: item.user_id,
-          firstName: item.first_name,
-          lastName: item.last_name,
-          location: item.location,
-          phone: item.phone,
-          desiredSalary: item.desired_salary,
-          preferredJobTypes: item.preferred_job_types,
-        }));
-        
-        setCandidates(transformedCandidates);
-        console.log('Final candidates array:', transformedCandidates);
-        return;
-      } catch (jobSeekerError) {
-        console.log('Job-seekers endpoint failed, trying users endpoint:', jobSeekerError);
-      }
-      
-      // Fallback: fetch users with job seeker role
-      const response = await fetch('http://localhost:8080/api/users', {
+      // Fetch users from /api/users
+      const response = await fetch('http://localhost:8080/api/users/jobseekers', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
       if (response.ok) {
         const users = await response.json();
-        console.log('Fetched users:', users);
-        
-        // Filter users with job seeker role and transform to JobSeeker format
-        const jobSeekerUsers = users.filter((user: any) => 
-          user.roleId === 'ROLE_JOBSEEKER' || 
-          user.role?.roleName === 'ROLE_JOBSEEKER' ||
-          user.role?.id === 'ROLE_JOBSEEKER'
-        );
-        
-        console.log('Job seeker users:', jobSeekerUsers);
-        
-        const transformedCandidates: JobSeeker[] = jobSeekerUsers.map((user: any) => ({
+        console.log('Fetched jobseeker users:', users);
+        const transformedCandidates: JobSeeker[] = users.map((user: any) => ({
           id: user.id || '',
           user_id: user.id || '',
           firstName: user.firstName || user.first_name,
@@ -78,7 +42,7 @@ const CandidatesTab = () => {
           desiredSalary: 'Not specified',
           preferredJobTypes: 'Job Seeker',
         }));
-        
+        console.log('Final candidates array:', transformedCandidates);
         setCandidates(transformedCandidates);
       } else {
         console.error('Failed to fetch users:', response.statusText);
@@ -87,7 +51,6 @@ const CandidatesTab = () => {
       console.error('Failed to fetch candidates:', error);
     } finally {
       setIsLoading(false);
-      console.log('Candidates loading finished. Total candidates:', candidates.length);
     }
   };
 

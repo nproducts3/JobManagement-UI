@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     switch (roleName) {
       case 'ROLE_ADMIN':
         return '/admin-dashboard';
-      case 'ROLE_EMPLOYEE':
+      case 'ROLE_EMPLOYER':
         return '/employer-dashboard';
       case 'ROLE_JOBSEEKER':
       default:

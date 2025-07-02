@@ -28,7 +28,7 @@ const PostJob = () => {
   });
   const [cities, setCities] = useState<City[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedEmployer, setSelectedEmployer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, role } = useAuth();
   const { toast } = useToast();
@@ -73,7 +73,7 @@ const PostJob = () => {
         cityId: formData.cityId ? parseInt(formData.cityId) : null,
         responsibilities: formData.responsibilities ? JSON.parse(`["${formData.responsibilities.split(',').join('","')}"]`) : null,
         benefits: formData.benefits ? JSON.parse(`["${formData.benefits.split(',').join('","')}"]`) : null,
-        posted_by: selectedEmployee || user?.id,
+        posted_by: selectedEmployer || user?.id,
       };
       // Remove 'id' if present (defensive)
       if ('id' in jobData) delete jobData.id;
@@ -110,8 +110,8 @@ const PostJob = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Only allow ROLE_ADMIN or ROLE_EMPLOYEE to post jobs
-  if (role && !(role.roleName === 'ROLE_ADMIN' || role.roleName === 'ROLE_EMPLOYEE')) {
+  // Only allow ROLE_ADMIN or ROLE_EMPLOYER to post jobs
+  if (role && !(role.roleName === 'ROLE_ADMIN' || role.roleName === 'ROLE_EMPLOYER')) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto">
@@ -140,7 +140,7 @@ const PostJob = () => {
               <Label htmlFor="employee">Post on behalf of (optional)</Label>
               <Select onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select employee (or post as yourself)" />
+                  <SelectValue placeholder="Select employer (or post as yourself)" />
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((employee) => (

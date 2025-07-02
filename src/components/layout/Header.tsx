@@ -21,7 +21,8 @@ export const Header = () => {
   const getDashboardLink = () => {
     if (role?.roleName === 'ROLE_SUPER_ADMIN') return '/admin-dashboard';
     if (role?.roleName === 'ROLE_EMPLOYER') return '/employer-dashboard';
-    if (role?.roleName === 'ROLE_EMPLOYEE') return '/employee-dashboard';
+    if (role?.roleName === 'ROLE_JOBSEEKER') return '/jobseeker-dashboard';
+    
     return '/dashboard';
   };
 

@@ -33,7 +33,7 @@ const CreateUser = () => {
     'ROLE_SUPER_ADMIN': 'Super Admin',
     'ROLE_JOBSEEKER': 'Job Seeker',
     'ROLE_EMPLOYER': 'Employer',
-    'ROLE_EMPLOYEE': 'Employee',
+    
   };
 
   useEffect(() => {

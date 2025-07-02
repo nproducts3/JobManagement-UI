@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Search, MapPin, Clock, Star, Bookmark, Filter as FilterIcon } from 'lucide-react';
 import { GoogleJob } from '@/types/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const KNOWN_SKILLS = ['JavaScript', 'React', 'Python', 'AWS', 'Node.js', 'TypeScript'];
 const KNOWN_EXPERIENCE = ['Entry Level', 'Mid Level', 'Senior Level', 'Executive'];
@@ -50,6 +52,7 @@ function extractRemote(job: GoogleJob): string[] {
 const JOBS_PER_PAGE = 10;
 
 const JobsList = () => {
+  const { isAuthenticated, role } = useAuth();
   const [jobs, setJobs] = useState<GoogleJob[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,6 +86,11 @@ const JobsList = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  const [showJobseekerDialog, setShowJobseekerDialog] = useState(false);
+  const [jobseekers, setJobseekers] = useState<any[]>([]);
+  const [selectedJobseeker, setSelectedJobseeker] = useState<string>('');
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchJobs();
@@ -127,6 +135,22 @@ const JobsList = () => {
     }
   };
 
+  const fetchJobseekers = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/users/jobseekers', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setJobseekers(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch jobseekers:', error);
+    }
+  };
+
   const handleApplyNow = (jobId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -134,7 +158,22 @@ const JobsList = () => {
       navigate('/login');
       return;
     }
+    if (role?.roleName === 'ROLE_EMPLOYER') {
+      setPendingJobId(jobId);
+      setShowJobseekerDialog(true);
+      if (jobseekers.length === 0) fetchJobseekers();
+      return;
+    }
     navigate(`/google-jobs/${jobId}`);
+  };
+
+  const handleJobseekerApply = () => {
+    if (selectedJobseeker && pendingJobId) {
+      setShowJobseekerDialog(false);
+      setTimeout(() => {
+        navigate(`/google-jobs/${pendingJobId}`);
+      }, 100); // Small delay for dialog close
+    }
   };
 
   const getMatchPercentage = () => {
@@ -557,7 +596,7 @@ const JobsList = () => {
                           className="bg-blue-600 hover:bg-blue-700"
                           onClick={(e) => handleApplyNow(job.id, e)}
                         >
-                          Apply
+                          View Details
                         </Button>
                       </div>
                     </div>
@@ -612,6 +651,32 @@ const JobsList = () => {
           )}
         </div>
       </div>
+
+      {/* Jobseeker Selection Dialog for Employees */}
+      <Dialog open={showJobseekerDialog} onOpenChange={setShowJobseekerDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a Jobseeker to Apply As</DialogTitle>
+          </DialogHeader>
+          <Select value={selectedJobseeker} onValueChange={setSelectedJobseeker}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select jobseeker" />
+            </SelectTrigger>
+            <SelectContent>
+              {jobseekers.map(js => (
+                <SelectItem key={js.id} value={js.id}>
+                  {js.firstName} {js.lastName} ({js.email})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button onClick={handleJobseekerApply} disabled={!selectedJobseeker}>
+              Continue to Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

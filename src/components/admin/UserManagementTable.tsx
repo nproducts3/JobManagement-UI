@@ -83,7 +83,7 @@ export const UserManagementTable = ({ users, organizations, onEditUser, onDelete
       'ROLE_SUPER_ADMIN': 'Super Admin',
       'ROLE_JOBSEEKER': 'Job Seeker',
       'ROLE_EMPLOYER': 'Employer',
-      'ROLE_EMPLOYEE': 'Employee',
+      
     };
     
     return ROLE_LABELS[roleId] || roleId;
