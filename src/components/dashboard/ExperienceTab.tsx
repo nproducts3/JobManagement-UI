@@ -12,17 +12,18 @@ import { Plus, Edit, Trash2, Briefcase } from 'lucide-react';
 
 interface ExperienceTabProps {
   jobSeekerId?: string;
+  onNextTab?: () => void;
 }
 
-export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
+export const ExperienceTab = ({ jobSeekerId, onNextTab }: ExperienceTabProps) => {
   const [experiences, setExperiences] = useState<JobSeekerExperience[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExperience, setEditingExperience] = useState<JobSeekerExperience | null>(null);
   const [formData, setFormData] = useState({
-    job_title: '',
-    company_name: '',
-    start_date: '',
-    end_date: '',
+    jobTitle: '',
+    companyName: '',
+    startDate: '',
+    endDate: '',
     responsibilities: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -36,14 +37,22 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
 
   const fetchExperiences = async () => {
     try {
-      const response = await fetch(`/api/job-seeker-experience?job_seeker_id=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-experiences?jobSeekerId=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setExperiences(data);
+        setExperiences(data.map((exp: any) => ({
+          id: exp.id,
+          jobSeekerId: exp.jobSeekerId,
+          jobTitle: exp.jobTitle,
+          companyName: exp.companyName,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          responsibilities: exp.responsibilities,
+        })));
       }
     } catch (error) {
       console.error('Failed to fetch experiences:', error);
@@ -57,21 +66,25 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
     setIsLoading(true);
 
     try {
-      const responsibilities = formData.responsibilities ? 
-        formData.responsibilities.split('\n').filter(r => r.trim()) : [];
+      const responsibilities = formData.responsibilities
+        ? formData.responsibilities.split('\n').filter(r => r.trim())
+        : [];
 
-      const payload = {
-        job_seeker_id: jobSeekerId,
-        job_title: formData.job_title,
-        company_name: formData.company_name,
-        start_date: formData.start_date,
-        end_date: formData.end_date || null,
+      let payload: any = {
+        jobSeekerId: jobSeekerId,
+        jobTitle: formData.jobTitle,
+        companyName: formData.companyName,
+        startDate: formData.startDate,
+        endDate: formData.endDate || undefined,
         responsibilities: responsibilities,
       };
+      if (editingExperience) {
+        payload = { ...payload, id: editingExperience.id };
+      }
 
-      const url = editingExperience 
-        ? `/api/job-seeker-experience/${editingExperience.id}`
-        : '/api/job-seeker-experience';
+      const url = editingExperience
+        ? `http://localhost:8080/api/job-seeker-experiences/${editingExperience.id}`
+        : 'http://localhost:8080/api/job-seeker-experiences';
       const method = editingExperience ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -84,21 +97,22 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
       });
 
       if (response.ok) {
-        const experience = await response.json();
+        const experience: JobSeekerExperience = await response.json();
         if (editingExperience) {
-          setExperiences(prev => prev.map(exp => 
+          setExperiences(prev => prev.map(exp =>
             exp.id === editingExperience.id ? experience : exp
           ));
         } else {
           setExperiences(prev => [...prev, experience]);
         }
-        
+
         resetForm();
         setIsDialogOpen(false);
         toast({
           title: "Success",
           description: `Experience ${editingExperience ? 'updated' : 'added'} successfully.`,
         });
+        if (onNextTab) onNextTab();
       } else {
         throw new Error('Failed to save experience');
       }
@@ -116,19 +130,20 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
   const handleEdit = (experience: JobSeekerExperience) => {
     setEditingExperience(experience);
     setFormData({
-      job_title: experience.job_title || '',
-      company_name: experience.company_name || '',
-      start_date: experience.start_date || '',
-      end_date: experience.end_date || '',
-      responsibilities: Array.isArray(experience.responsibilities) 
-        ? experience.responsibilities.join('\n') : '',
+      jobTitle: experience.jobTitle || '',
+      companyName: experience.companyName || '',
+      startDate: experience.startDate || '',
+      endDate: experience.endDate || '',
+      responsibilities: Array.isArray(experience.responsibilities)
+        ? experience.responsibilities.join('\n')
+        : '',
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (experienceId: string) => {
     try {
-      const response = await fetch(`/api/job-seeker-experience/${experienceId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-experiences/${experienceId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -155,10 +170,10 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
 
   const resetForm = () => {
     setFormData({
-      job_title: '',
-      company_name: '',
-      start_date: '',
-      end_date: '',
+      jobTitle: '',
+      companyName: '',
+      startDate: '',
+      endDate: '',
       responsibilities: '',
     });
     setEditingExperience(null);
@@ -196,41 +211,41 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="job_title">Job Title</Label>
+                  <Label htmlFor="jobTitle">Job Title</Label>
                   <Input
-                    id="job_title"
-                    value={formData.job_title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))}
+                    id="jobTitle"
+                    value={formData.jobTitle}
+                    onChange={(e) => setFormData(prev => ({ ...prev, jobTitle: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company_name">Company</Label>
+                  <Label htmlFor="companyName">Company</Label>
                   <Input
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                    id="companyName"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="start_date">Start Date</Label>
+                    <Label htmlFor="startDate">Start Date</Label>
                     <Input
-                      id="start_date"
+                      id="startDate"
                       type="date"
-                      value={formData.start_date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="end_date">End Date</Label>
+                    <Label htmlFor="endDate">End Date</Label>
                     <Input
-                      id="end_date"
+                      id="endDate"
                       type="date"
-                      value={formData.end_date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                      value={formData.endDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                       placeholder="Leave empty if current"
                     />
                   </div>
@@ -269,12 +284,12 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
                   <div className="flex items-start gap-3">
                     <Briefcase className="h-5 w-5 mt-1 text-gray-500" />
                     <div>
-                      <CardTitle className="text-lg">{experience.job_title}</CardTitle>
+                      <CardTitle className="text-lg">{experience.jobTitle}</CardTitle>
                       <CardDescription className="text-base">
-                        {experience.company_name}
+                        {experience.companyName}
                       </CardDescription>
                       <p className="text-sm text-gray-500 mt-1">
-                        {experience.start_date} - {experience.end_date || 'Present'}
+                          {experience.startDate} - {experience.endDate || 'Present'}
                       </p>
                     </div>
                   </div>
@@ -282,9 +297,9 @@ export const ExperienceTab = ({ jobSeekerId }: ExperienceTabProps) => {
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(experience)}>
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDelete(experience.id)}
                     >
                       <Trash2 className="h-4 w-4" />

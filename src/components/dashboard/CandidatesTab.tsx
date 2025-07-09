@@ -6,15 +6,21 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Eye, Calendar, ArrowRight } from 'lucide-react';
 import { JobSeeker } from '@/types/api';
 import { jobSeekerService } from '@/services/jobSeekerService';
+import { useSearchParams } from 'react-router-dom';
+
+const CANDIDATES_PER_PAGE = 10;
 
 const CandidatesTab = () => {
   const [candidates, setCandidates] = useState<JobSeeker[]>([]);
+  const [totalCandidates, setTotalCandidates] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   useEffect(() => {
     fetchCandidates();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
     console.log('Candidates state updated:', candidates);
@@ -23,32 +29,22 @@ const CandidatesTab = () => {
   const fetchCandidates = async () => {
     setIsLoading(true);
     try {
-      // Fetch users from /api/users
-      const response = await fetch('http://localhost:8080/api/users/jobseekers', {
+      const response = await fetch(`http://localhost:8080/api/users/jobseekers/paged?page=${currentPage - 1}&size=${CANDIDATES_PER_PAGE}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
-        const users = await response.json();
-        console.log('Fetched jobseeker users:', users);
-        const transformedCandidates: JobSeeker[] = users.map((user: any) => ({
-          id: user.id || '',
-          user_id: user.id || '',
-          firstName: user.firstName || user.first_name,
-          lastName: user.lastName || user.last_name,
-          location: 'Location not specified',
-          phone: user.phoneNumber || user.phone,
-          desiredSalary: 'Not specified',
-          preferredJobTypes: 'Job Seeker',
-        }));
-        console.log('Final candidates array:', transformedCandidates);
-        setCandidates(transformedCandidates);
+        const data = await response.json();
+        setCandidates(data.content || []);
+        setTotalCandidates(data.totalElements || 0);
       } else {
-        console.error('Failed to fetch users:', response.statusText);
+        setCandidates([]);
+        setTotalCandidates(0);
       }
     } catch (error) {
-      console.error('Failed to fetch candidates:', error);
+      setCandidates([]);
+      setTotalCandidates(0);
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +99,11 @@ const CandidatesTab = () => {
   if (isLoading) {
     return <div className="text-center py-8">Loading candidates...</div>;
   }
+
+  const totalPages = Math.ceil(totalCandidates / CANDIDATES_PER_PAGE);
+  const handlePageChange = (pageNum: number) => {
+    setSearchParams({ ...Object.fromEntries(searchParams.entries()), page: pageNum.toString() });
+  };
 
   return (
     <div className="space-y-6">
@@ -220,6 +221,22 @@ const CandidatesTab = () => {
             <p className="text-gray-500">No candidates found.</p>
           </CardContent>
         </Card>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <Button variant="outline" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>Previous</Button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <Button
+              key={i + 1}
+              variant={currentPage === i + 1 ? 'default' : 'outline'}
+              onClick={() => handlePageChange(i + 1)}
+            >
+              {i + 1}
+            </Button>
+          ))}
+          <Button variant="outline" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</Button>
+        </div>
       )}
     </div>
   );

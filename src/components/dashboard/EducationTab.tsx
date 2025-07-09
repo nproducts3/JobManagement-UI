@@ -11,9 +11,10 @@ import { Plus, Edit, Trash2, GraduationCap } from 'lucide-react';
 
 interface EducationTabProps {
   jobSeekerId?: string;
+  onNextTab?: () => void;
 }
 
-export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
+export const EducationTab = ({ jobSeekerId, onNextTab }: EducationTabProps) => {
   const [educations, setEducations] = useState<JobSeekerEducation[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEducation, setEditingEducation] = useState<JobSeekerEducation | null>(null);
@@ -33,7 +34,7 @@ export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
 
   const fetchEducations = async () => {
     try {
-      const response = await fetch(`/api/job-seeker-education?job_seeker_id=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-educations?job_seeker_id=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -55,15 +56,15 @@ export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
 
     try {
       const payload = {
-        job_seeker_id: jobSeekerId,
+        jobSeekerId: jobSeekerId,
         degree: formData.degree,
         university: formData.university,
-        graduation_year: formData.graduation_year ? parseInt(formData.graduation_year) : null,
+        graduationYear: formData.graduation_year ? parseInt(formData.graduation_year) : null,
       };
 
       const url = editingEducation 
-        ? `/api/job-seeker-education/${editingEducation.id}`
-        : '/api/job-seeker-education';
+        ? `http://localhost:8080/api/job-seeker-educations/${editingEducation.id}`
+        : 'http://localhost:8080/api/job-seeker-educations';
       const method = editingEducation ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -91,6 +92,7 @@ export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
           title: "Success",
           description: `Education ${editingEducation ? 'updated' : 'added'} successfully.`,
         });
+        if (onNextTab) onNextTab();
       } else {
         throw new Error('Failed to save education');
       }
@@ -110,14 +112,14 @@ export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
     setFormData({
       degree: education.degree || '',
       university: education.university || '',
-      graduation_year: education.graduation_year?.toString() || '',
+      graduation_year: education.graduationYear?.toString() || '',
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (educationId: string) => {
     try {
-      const response = await fetch(`/api/job-seeker-education/${educationId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-educations/${educationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -242,9 +244,9 @@ export const EducationTab = ({ jobSeekerId }: EducationTabProps) => {
                       <CardDescription className="text-base">
                         {education.university}
                       </CardDescription>
-                      {education.graduation_year && (
+                      {education.graduationYear && (
                         <p className="text-sm text-gray-500 mt-1">
-                          Graduated: {education.graduation_year}
+                          Graduated: {education.graduationYear}
                         </p>
                       )}
                     </div>

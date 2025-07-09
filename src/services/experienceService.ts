@@ -3,11 +3,11 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export interface ExperienceData {
   id?: string;
-  job_seeker_id: string;
-  job_title?: string;
-  company_name?: string;
-  start_date?: string;
-  end_date?: string;
+  jobSeekerId: string;
+  jobTitle?: string;
+  companyName?: string;
+  startDate?: string;
+  endDate?: string;
   responsibilities?: string[];
 }
 

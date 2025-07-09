@@ -11,9 +11,10 @@ import { Plus, Edit, Trash2, Award } from 'lucide-react';
 
 interface CertificationsTabProps {
   jobSeekerId?: string;
+  onNextTab?: () => void;
 }
 
-export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
+export const CertificationsTab = ({ jobSeekerId, onNextTab }: CertificationsTabProps) => {
   const [certifications, setCertifications] = useState<JobSeekerCertification[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCertification, setEditingCertification] = useState<JobSeekerCertification | null>(null);
@@ -29,7 +30,7 @@ export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
 
   const fetchCertifications = async () => {
     try {
-      const response = await fetch(`/api/job-seeker-certifications?job_seeker_id=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-certifications?jobSeekerId=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -51,13 +52,13 @@ export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
 
     try {
       const payload = {
-        job_seeker_id: jobSeekerId,
-        certification_name: certificationName.trim(),
+        jobSeekerId: jobSeekerId,
+        certificationName: certificationName.trim(),
       };
 
       const url = editingCertification 
-        ? `/api/job-seeker-certifications/${editingCertification.id}`
-        : '/api/job-seeker-certifications';
+        ? `http://localhost:8080/api/job-seeker-certifications/${editingCertification.id}`
+        : 'http://localhost:8080/api/job-seeker-certifications';
       const method = editingCertification ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -85,6 +86,7 @@ export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
           title: "Success",
           description: `Certification ${editingCertification ? 'updated' : 'added'} successfully.`,
         });
+        if (onNextTab) onNextTab();
       } else {
         throw new Error('Failed to save certification');
       }
@@ -101,13 +103,13 @@ export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
 
   const handleEdit = (certification: JobSeekerCertification) => {
     setEditingCertification(certification);
-    setCertificationName(certification.certification_name || '');
-    setIsDialogOpen(true);
+    setCertificationName(certification.certificationName || '');
+    setIsDialogOpen(true);  
   };
 
   const handleDelete = async (certificationId: string) => {
     try {
-      const response = await fetch(`/api/job-seeker-certifications/${certificationId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-certifications/${certificationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -202,7 +204,7 @@ export const CertificationsTab = ({ jobSeekerId }: CertificationsTabProps) => {
                   <div className="flex items-start gap-3">
                     <Award className="h-5 w-5 mt-1 text-gray-500" />
                     <div>
-                      <CardTitle className="text-lg">{certification.certification_name}</CardTitle>
+                      <CardTitle className="text-lg">{certification.certificationName}</CardTitle>
                     </div>
                   </div>
                   <div className="flex gap-2">

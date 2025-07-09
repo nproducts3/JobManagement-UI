@@ -5,12 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Organization, GoogleJob, Role } from '@/types/api';
 import { Users, Building2, Briefcase, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { UserManagementTable } from '@/components/admin/UserManagementTable';
 import { toast, useToast } from '@/hooks/use-toast';
 import UserEditModal from '@/components/admin/UserEditModal';
 import { userService } from '@/services/userService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const USERS_PER_PAGE = 10;
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -29,28 +31,34 @@ const AdminDashboard = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
+  const [userPage, setUserPage] = useState(pageFromUrl);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
-    fetchUsers();
+    if (userPage !== pageFromUrl) setUserPage(pageFromUrl);
+    fetchUsers(pageFromUrl);
     fetchOrganizations();
     fetchJobs();
     fetchRoles();
-  }, []);
+  }, [pageFromUrl]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1) => {
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      const response = await fetch(`http://localhost:8080/api/users/paged?page=${page - 1}&size=${USERS_PER_PAGE}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setUsers(data);
+        setUsers(data.content || []);
+        setTotalUsers(data.totalElements || 0);
         setStats(prev => ({
           ...prev,
-          totalUsers: data.length,
-          activeUsers: data.filter((u: User) => !u.disabled).length
+          totalUsers: data.totalElements || 0,
+          activeUsers: (data.content || []).filter((u: User) => !u.disabled).length
         }));
       }
     } catch (error) {
@@ -164,6 +172,10 @@ const AdminDashboard = () => {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setSearchParams({ ...Object.fromEntries(searchParams.entries()), page: page.toString() });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -256,7 +268,30 @@ const AdminDashboard = () => {
             organizations={organizations}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
+            currentPage={userPage}
+            totalUsers={totalUsers}
+            usersPerPage={USERS_PER_PAGE}
+            onPageChange={handlePageChange}
           />
+          {/* {totalUsers > USERS_PER_PAGE && (
+            <div className="flex justify-center items-center gap-2 mt-4">
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                onClick={() => setUserPage(Math.max(1, userPage - 1))}
+                disabled={userPage === 1}
+              >
+                Previous
+              </button>
+              <span className="px-2">Page {userPage} of {Math.ceil(totalUsers / USERS_PER_PAGE)}</span>
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                onClick={() => setUserPage(Math.min(Math.ceil(totalUsers / USERS_PER_PAGE), userPage + 1))}
+                disabled={userPage === Math.ceil(totalUsers / USERS_PER_PAGE)}
+              >
+                Next
+              </button>
+            </div>
+          )} */}
           <UserEditModal
             open={editModalOpen}
             onClose={() => { setEditModalOpen(false); setEditUser(null); }}

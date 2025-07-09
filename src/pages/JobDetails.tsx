@@ -17,6 +17,7 @@ const JobDetails = () => {
   const { isAuthenticated, role } = useAuth();
   const [similarJobs, setSimilarJobs] = useState<GoogleJob[]>([]);
   const navigate = useNavigate();
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -290,15 +291,50 @@ const JobDetails = () => {
                       <div>
                         <h3 className="text-lg font-semibold mb-3">Job Description</h3>
                         {job.description && typeof job.description === 'string' ? (
-                          <div className="prose max-w-none">
-                            {parseDescriptionToList(job.description)}
-                          </div>
-                        ) : job.description && Array.isArray(job.description) && job.description.length > 0 ? (
-                          <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                            {job.description.map((desc, index) => (
-                              <li key={index}>{desc}</li>
-                            ))}
-                          </ul>
+                          (() => {
+                            const lines = job.description.split('\n').map(line => line.trim()).filter(Boolean);
+                            const displayLines = showFullDescription ? lines : lines.slice(0, 10);
+                            return (
+                              <div className="prose max-w-none">
+                                {parseDescriptionToList(displayLines.join('\n'))}
+                                {lines.length > 10 && (
+                                  <Button
+                                    variant="ghost"
+                                    className="mt-2 px-0 text-blue-600 hover:underline"
+                                    onClick={() => setShowFullDescription(v => !v)}
+                                  >
+                                    {showFullDescription ? 'View Less' : 'View More'}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()
+                        ) : Array.isArray(job.description) && job.description.length > 0 ? (
+                          (() => {
+                            const displayLines = Array.isArray(job.description)
+                              ? (showFullDescription ? job.description : job.description.slice(0, 10))
+                              : [];
+                            return (
+                              <>
+                                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                                  {Array.isArray(displayLines)
+                                    ? displayLines.map((desc: string, index: number) => (
+                                        <li key={index}>{desc}</li>
+                                      ))
+                                    : null}
+                                </ul>
+                                {job.description.length > 10 && (
+                                  <Button
+                                    variant="ghost"
+                                    className="mt-2 px-0 text-blue-600 hover:underline"
+                                    onClick={() => setShowFullDescription(v => !v)}
+                                  >
+                                    {showFullDescription ? 'View Less' : 'View More'}
+                                  </Button>
+                                )}
+                              </>
+                            );
+                          })()
                         ) : (
                           <ul className="list-disc pl-6 space-y-2 text-gray-700">
                             <li>We are looking for a Senior Software Engineer to join our dynamic team and lead development efforts.</li>

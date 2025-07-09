@@ -92,8 +92,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
-        if (userData.role && userData.role.roleName) {
+
+        // PATCH: Handle role as string, object, or missing
+        if (typeof userData.role === 'object' && userData.role?.roleName) {
           setRole(userData.role);
+        } else if (typeof userData.role === 'string') {
+          setRole({ id: userData.role, roleName: userData.role });
         } else if (userData.roleId) {
           // Fallback: fetch role by roleId if role object is not present
           const roleResponse = await fetch(`http://localhost:8080/api/roles/${userData.roleId}`, {
@@ -149,24 +153,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const data = await response.json();
       const { token: authToken, id, email: userEmail, role } = data;
-
+      const roleName = typeof role === 'object' && role.roleName ? role.roleName : role;
+      console.log('Login role:', role, 'Resolved roleName:', roleName);
       localStorage.setItem('token', authToken);
       setToken(authToken);
       // Store userId in localStorage for later use
       localStorage.setItem('userId', id);
-
       // --- SET SESSION EXPIRATION ---
       const oneHour = 60 * 60 * 1000;
       const expiresAt = Date.now() + oneHour;
       localStorage.setItem("expiresAt", expiresAt.toString());
       // --- END SESSION EXPIRATION ---
-
       // Set user and role in context (minimal, will be replaced by fetchUserData)
-      setUser({ id, email: userEmail, roleId: role } as any);
-      setRole({ id: role, roleName: role } as any);
-
+      setUser({ id, email: userEmail, roleId: roleName } as any);
+      setRole({ id: roleName, roleName: roleName } as any);
       // Redirect based on role
-      const redirectPath = getDashboardPath(role);
+      const redirectPath = getDashboardPath(roleName);
       return { redirectPath };
     } catch (error) {
       throw new Error('Invalid credentials.');

@@ -3,66 +3,55 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export interface ResumeData {
   id?: string;
-  googlejob_id: string;
-  resume_file: string;
-  resume_text?: string;
-  match_percentage?: number;
+  googleJobId: string;
+  resumeFile: string;
+  resumeText?: string;
+  matchPercentage?: number;
   uploaded_at?: string;
 }
 
 export const resumeService = {
-  getAll: async (): Promise<ResumeData[]> => {
-    const response = await fetch(`${BASE_URL}/job-resumes`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch resumes');
-    return response.json();
-  },
-
-  getById: async (id: string): Promise<ResumeData> => {
-    const response = await fetch(`${BASE_URL}/job-resumes/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch resume');
-    return response.json();
-  },
-
-  create: async (formData: FormData): Promise<ResumeData> => {
-    const response = await fetch(`${BASE_URL}/job-resumes`, {
+  // Analyze resume against all jobs
+  analyzeResume: async (file: File, jobSeekerId: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('jobSeekerId', jobSeekerId);
+    const response = await fetch(`${BASE_URL}/resume-analysis/analyze`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: formData
-    });
-    if (!response.ok) throw new Error('Failed to upload resume');
-    return response.json();
-  },
-
-  update: async (id: string, data: ResumeData): Promise<ResumeData> => {
-    const response = await fetch(`${BASE_URL}/job-resumes/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) throw new Error('Failed to update resume');
-    return response.json();
-  },
-
-  delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${BASE_URL}/job-resumes/${id}`, {
-      method: 'DELETE',
+      body: formData,
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
-    if (!response.ok) throw new Error('Failed to delete resume');
+    if (!response.ok) throw new Error('Failed to analyze resume');
+    return response.json();
+  },
+
+  // Get top matching jobs for resume text
+  getTopMatches: async (resumeText: string, limit = 10) => {
+    const params = new URLSearchParams();
+    params.append('resumeText', resumeText);
+    params.append('limit', limit.toString());
+    const response = await fetch(`${BASE_URL}/resume-analysis/top-matches`, {
+      method: 'POST',
+      body: params,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    if (!response.ok) throw new Error('Failed to get top matches');
+    return response.json();
+  },
+
+  // Extract skills from resume text
+  extractSkills: async (resumeText: string) => {
+    const response = await fetch(`${BASE_URL}/resume-analysis/skills?resumeText=${encodeURIComponent(resumeText)}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to extract skills');
+    return response.json();
   }
 };

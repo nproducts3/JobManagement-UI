@@ -36,7 +36,7 @@ export interface Organization {
 
 export interface JobSeeker {
   id: string;
-  user_id: string;
+  user: User;
   firstName?: string;
   lastName?: string;
   location?: string;
@@ -47,41 +47,41 @@ export interface JobSeeker {
 
 export interface JobSeekerSkill {
   id: string;
-  job_seeker_id: string;
-  skill_name: string;
+  jobSeekerId: string;
+  skillName: string;
 }
 
 export interface JobSeekerExperience {
   id: string;
-  job_seeker_id: string;
-  job_title?: string;
-  company_name?: string;
-  start_date?: string;
-  end_date?: string;
+  jobSeekerId: string;
+  jobTitle?: string;
+  companyName?: string;
+  startDate?: string;
+  endDate?: string;
   responsibilities?: any;
 }
 
 export interface JobSeekerEducation {
   id: string;
-  job_seeker_id: string;
+  jobSeekerId: string;
   degree?: string;
   university?: string;
-  graduation_year?: number;
+  graduationYear?: number;
 }
 
 export interface JobSeekerCertification {
   id: string;
-  job_seeker_id: string;
-  certification_name?: string;
+  jobSeekerId: string;
+  certificationName?: string;
 }
 
 export interface JobResume {
   id: string;
-  googlejob_id: string;
-  resume_file: string;
-  resume_text?: string;
-  match_percentage?: number;
-  uploaded_at?: string;
+  googleJobId: string;
+  resumeFile: string;
+  resumeText?: string;
+  matchPercentage?: number;
+  uploadedAt?: string;
 }
 
 export interface GoogleJob {
@@ -100,8 +100,8 @@ export interface GoogleJob {
   responsibilities?: any;
   benefits?: any;
   applyLinks?: string;
-  jobTitleId?: number;
-  cityId?: number;
+  jobTitle?: string;
+  city?: City;
   extractedSkills?: string[];
   extractedExperience?: string[];
   extractedRemote?: string[];

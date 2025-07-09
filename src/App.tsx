@@ -44,7 +44,6 @@ const App = () => (
             <Route path="/google-jobs/:id" element={<Layout><JobDetails /></Layout>} />
             <Route path="/dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/employer-dashboard" element={<Layout><EmployerDashboard /></Layout>} />
-            <Route path="/employee-dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/admin-dashboard" element={<Layout><AdminDashboard /></Layout>} />
             <Route path="/settings" element={<Layout><JobSeekerSettings /></Layout>} />
             <Route path="/profile" element={<Layout><Profile /></Layout>} />

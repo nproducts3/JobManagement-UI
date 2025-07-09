@@ -3,8 +3,8 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export interface CertificationData {
   id?: string;
-  job_seeker_id: string;
-  certification_name?: string;
+  jobSeekerId: string;
+  certificationName?: string;
 }
 
 export const certificationsService = {

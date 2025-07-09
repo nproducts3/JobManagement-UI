@@ -8,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, X } from 'lucide-react';
 import { skillsService, SkillData } from '@/services/skillsService';
+import { JobSeekerSkill } from '@/types/api';
 
 interface SkillsTabProps {
   jobSeekerId?: string;
+  onNextTab?: () => void;
 }
 
-export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
-  const [skills, setSkills] = useState<SkillData[]>([]);
+export const SkillsTab = ({ jobSeekerId, onNextTab }: SkillsTabProps) => {
+  const [skills, setSkills] = useState<JobSeekerSkill[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -27,8 +29,12 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
   const fetchSkills = async () => {
     try {
-      const data = await skillsService.getByJobSeekerId(jobSeekerId!);
-      setSkills(data);
+      const data: SkillData[] = await skillsService.getByJobSeekerId(jobSeekerId!);
+      setSkills(data.map(s => ({
+        id: s.id || '',
+        jobSeekerId: s.jobSeekerId,
+        skillName: s.skillName,
+      })));
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       toast({
@@ -47,17 +53,20 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
 
     try {
       const skillData: SkillData = {
-        job_seeker_id: jobSeekerId,
-        skill_name: newSkill.trim(),
+        jobSeekerId: jobSeekerId,
+        skillName: newSkill.trim(),
       };
-
       const skill = await skillsService.create(skillData);
-      setSkills(prev => [...prev, skill]);
+      setSkills(prev => [
+        ...prev,
+        { id: skill.id || '', jobSeekerId: skill.jobSeekerId, skillName: skill.skillName }
+      ]);
       setNewSkill('');
       toast({
         title: "Success",
         description: "Skill added successfully.",
       });
+      if (onNextTab) onNextTab();
     } catch (error) {
       toast({
         title: "Error",
@@ -98,9 +107,9 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
         {/* Add New Skill */}
         <form onSubmit={addSkill} className="flex gap-3">
           <div className="flex-1">
-            <Label htmlFor="skill_name" className="sr-only">Skill Name</Label>
+            <Label htmlFor="skillName" className="sr-only">Skill Name</Label>
             <Input
-              id="skill_name"
+              id="skillName"
               placeholder="Enter a skill (e.g., JavaScript, Project Management)"
               value={newSkill}
               onChange={(e) => setNewSkill(e.target.value)}
@@ -119,7 +128,7 @@ export const SkillsTab = ({ jobSeekerId }: SkillsTabProps) => {
             <div className="flex flex-wrap gap-2">
               {skills.map((skill) => (
                 <Badge key={skill.id} variant="secondary" className="text-sm px-3 py-1">
-                  {skill.skill_name}
+                  {skill.skillName}
                   <Button
                     variant="ghost"
                     size="sm"

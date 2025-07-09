@@ -1,15 +1,14 @@
-
 const BASE_URL = 'http://localhost:8080/api';
 
 export interface JobSeekerData {
   id?: string;
-  user_id: string;
-  first_name?: string;
-  last_name?: string;
+  user_id?: string;
+  firstName?: string;
+  lastName?: string;
   location?: string;
   phone?: string;
-  desired_salary?: string;
-  preferred_job_types?: string;
+  desiredSalary?: string;
+  preferredJobTypes?: string;
 }
 
 export const jobSeekerService = {
@@ -43,7 +42,7 @@ export const jobSeekerService = {
     return response.json();
   },
 
-  create: async (data: Omit<JobSeekerData, 'id'>): Promise<JobSeekerData> => {
+  create: async (data: Omit<JobSeekerData, 'id' | 'user_id'>): Promise<JobSeekerData> => {
     const response = await fetch(`${BASE_URL}/job-seekers`, {
       method: 'POST',
       headers: {

@@ -15,12 +15,17 @@ interface UserManagementTableProps {
   organizations: Organization[];
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
+  currentPage: number;
+  totalUsers: number;
+  usersPerPage: number;
+  onPageChange: (page: number) => void;
 }
 
-export const UserManagementTable = ({ users, organizations, onEditUser, onDeleteUser }: UserManagementTableProps) => {
+export const UserManagementTable = ({ users, organizations, onEditUser, onDeleteUser, currentPage, totalUsers, usersPerPage, onPageChange }: UserManagementTableProps) => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const { toast } = useToast();
+  const totalPages = Math.ceil(totalUsers / usersPerPage);
 
   useEffect(() => {
     fetchRoles();
@@ -186,6 +191,58 @@ export const UserManagementTable = ({ users, organizations, onEditUser, onDelete
           ))}
         </TableBody>
       </Table>
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            className="px-3 py-1 rounded border disabled:opacity-50"
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          {/* Pagination numbers logic */}
+          {totalUsers > 50 ? (
+            <>
+              <button
+                className={`px-3 py-1 rounded border ${currentPage === 1 ? 'bg-blue-600 text-white' : ''}`}
+                onClick={() => onPageChange(1)}
+              >
+                1
+              </button>
+              <button
+                className={`px-3 py-1 rounded border ${currentPage === 2 ? 'bg-blue-600 text-white' : ''}`}
+                onClick={() => onPageChange(2)}
+              >
+                2
+              </button>
+              <button
+                className={`px-3 py-1 rounded border ${currentPage === 3 ? 'bg-blue-600 text-white' : ''}`}
+                onClick={() => onPageChange(3)}
+              >
+                3
+              </button>
+              <span className="px-2">...</span>
+            </>
+          ) : (
+            Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                className={`px-3 py-1 rounded border ${currentPage === pageNum ? 'bg-blue-600 text-white' : ''}`}
+                onClick={() => onPageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            ))
+          )}
+          <button
+            className="px-3 py-1 rounded border disabled:opacity-50"
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };

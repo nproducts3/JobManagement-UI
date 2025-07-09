@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,16 +11,17 @@ import { jobSeekerService, JobSeekerData } from '@/services/jobSeekerService';
 interface ProfileTabProps {
   profile: JobSeeker | null;
   onUpdate: (profile: JobSeeker) => void;
+  onNextTab?: () => void;
 }
 
-export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
+export const ProfileTab = ({ profile, onUpdate, onNextTab }: ProfileTabProps) => {
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    firstName: '',
+    lastName: '',
     location: '',
     phone: '',
-    desired_salary: '',
-    preferred_job_types: '',
+    desiredSalary: '',
+    preferredJobTypes: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
@@ -30,12 +30,12 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
   useEffect(() => {
     if (profile) {
       setFormData({
-        first_name: profile.firstName || '',
-        last_name: profile.lastName || '',
+        firstName: profile.user?.firstName || '',
+        lastName: profile.user?.lastName || '',
         location: profile.location || '',
         phone: profile.phone || '',
-        desired_salary: profile.desiredSalary || '',
-        preferred_job_types: profile.preferredJobTypes || '',
+        desiredSalary: profile.desiredSalary || '',
+        preferredJobTypes: profile.preferredJobTypes || '',
       });
     }
   }, [profile]);
@@ -50,24 +50,35 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
       let updatedProfile: JobSeekerData;
       
       if (profile) {
-        updatedProfile = await jobSeekerService.update(profile.id, formData);
+        updatedProfile = await jobSeekerService.update(profile.id, {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          location: formData.location,
+          phone: formData.phone,
+          desiredSalary: formData.desiredSalary,
+          preferredJobTypes: formData.preferredJobTypes,
+        });
       } else {
-        updatedProfile = await jobSeekerService.create({ 
-          ...formData, 
-          user_id: user.id 
+        updatedProfile = await jobSeekerService.create({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          location: formData.location,
+          phone: formData.phone,
+          desiredSalary: formData.desiredSalary,
+          preferredJobTypes: formData.preferredJobTypes,
         });
       }
       
       // Convert JobSeekerData to JobSeeker for the callback
       const jobSeekerForCallback: JobSeeker = {
         id: updatedProfile.id || '',
-        user_id: updatedProfile.user_id,
-        firstName: updatedProfile.first_name,
-        lastName: updatedProfile.last_name,
+        user: user,
+        firstName: user.firstName,
+        lastName: user.lastName,
         location: updatedProfile.location,
         phone: updatedProfile.phone,
-        desiredSalary: updatedProfile.desired_salary,
-        preferredJobTypes: updatedProfile.preferred_job_types,
+        desiredSalary: updatedProfile.desiredSalary,
+        preferredJobTypes: updatedProfile.preferredJobTypes,
       };
       
       onUpdate(jobSeekerForCallback);
@@ -75,6 +86,7 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
         title: "Success",
         description: "Profile updated successfully.",
       });
+      if (onNextTab) onNextTab();
     } catch (error) {
       toast({
         title: "Error",
@@ -99,14 +111,33 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Display logged-in user info */}
+        {user && (
+          <div className="mb-6 p-4 bg-gray-50 rounded">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* <div>
+                <Label>User ID</Label>
+                <Input value={user.id} readOnly className="bg-gray-100" />
+              </div> */}
+              <div>
+                <Label>First Name</Label>
+                <Input value={user.firstName} readOnly className="bg-gray-100" />
+              </div>
+              <div>
+                <Label>Last Name</Label>
+                <Input value={user.lastName} readOnly className="bg-gray-100" />
+              </div>
+            </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>
               <Input
                 id="first_name"
                 value={formData.first_name}
-                onChange={(e) => handleChange('first_name', e.target.value)}
+                readOnly
                 required
               />
             </div>
@@ -115,11 +146,11 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
               <Input
                 id="last_name"
                 value={formData.last_name}
-                onChange={(e) => handleChange('last_name', e.target.value)}
+                readOnly
                 required
               />
             </div>
-          </div>
+          </div> */}
 
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
@@ -142,22 +173,22 @@ export const ProfileTab = ({ profile, onUpdate }: ProfileTabProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="desired_salary">Desired Salary</Label>
+            <Label htmlFor="desiredSalary">Desired Salary</Label>
             <Input
-              id="desired_salary"
+              id="desiredSalary"
               placeholder="e.g., $80,000 - $100,000"
-              value={formData.desired_salary}
-              onChange={(e) => handleChange('desired_salary', e.target.value)}
+              value={formData.desiredSalary}
+              onChange={(e) => handleChange('desiredSalary', e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="preferred_job_types">Preferred Job Types</Label>
+            <Label htmlFor="preferredJobTypes">Preferred Job Types</Label>
             <Input
-              id="preferred_job_types"
+              id="preferredJobTypes"
               placeholder="e.g., Full-time, Remote, Contract"
-              value={formData.preferred_job_types}
-              onChange={(e) => handleChange('preferred_job_types', e.target.value)}
+              value={formData.preferredJobTypes}
+              onChange={(e) => handleChange('preferredJobTypes', e.target.value)}
             />
           </div>
 

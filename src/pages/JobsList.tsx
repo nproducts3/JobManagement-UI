@@ -51,6 +51,13 @@ function extractRemote(job: GoogleJob): string[] {
 
 const JOBS_PER_PAGE = 10;
 
+// Utility to calculate match percentage between two skill arrays
+function calculateSkillMatch(userSkills: string[], jobSkills: string[]): number {
+  if (!userSkills || !jobSkills || jobSkills.length === 0) return 0;
+  const matched = jobSkills.filter(skill => userSkills.includes(skill));
+  return Math.round((matched.length / jobSkills.length) * 100);
+}
+
 const JobsList = () => {
   const { isAuthenticated, role } = useAuth();
   const [jobs, setJobs] = useState<GoogleJob[]>([]);
@@ -91,6 +98,13 @@ const JobsList = () => {
   const [jobseekers, setJobseekers] = useState<any[]>([]);
   const [selectedJobseeker, setSelectedJobseeker] = useState<string>('');
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
+
+  // Read user's extracted skills from localStorage
+  let userSkills: string[] = [];
+  try {
+    const stored = localStorage.getItem('resumeSkills');
+    if (stored) userSkills = JSON.parse(stored);
+  } catch {}
 
   useEffect(() => {
     fetchJobs();
@@ -502,7 +516,9 @@ const JobsList = () => {
           {/* Jobs List */}
           <div className="space-y-4">
             {sortedJobs.map((job) => {
-              const matchPercentage = getMatchPercentage();
+              const matchPercentage = userSkills.length > 0 && job.extractedSkills && job.extractedSkills.length > 0
+                ? calculateSkillMatch(userSkills, job.extractedSkills)
+                : 0;
               const companyName = job.companyName || 'Unknown Company';
               const jobTitle = job.title || 'Unknown Position';
               

@@ -3,8 +3,8 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export interface SkillData {
   id?: string;
-  job_seeker_id: string;
-  skill_name: string;
+  jobSeekerId: string;
+  skillName: string;
 }
 
 export const skillsService = {

@@ -3,15 +3,15 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export interface EducationData {
   id?: string;
-  job_seeker_id: string;
+  jobSeekerId: string;
   degree?: string;
   university?: string;
-  graduation_year?: number;
+  graduationYear?: number;
 }
 
 export const educationService = {
   getAll: async (): Promise<EducationData[]> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -21,7 +21,7 @@ export const educationService = {
   },
 
   getById: async (id: string): Promise<EducationData> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education/${id}`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations/${id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -31,7 +31,7 @@ export const educationService = {
   },
 
   getByJobSeekerId: async (jobSeekerId: string): Promise<EducationData[]> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education?job_seeker_id=${jobSeekerId}`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations?job_seeker_id=${jobSeekerId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -41,7 +41,7 @@ export const educationService = {
   },
 
   create: async (data: EducationData): Promise<EducationData> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export const educationService = {
   },
 
   update: async (id: string, data: EducationData): Promise<EducationData> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education/${id}`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export const educationService = {
   },
 
   delete: async (id: string): Promise<void> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-education/${id}`, {
+    const response = await fetch(`${BASE_URL}/job-seeker-educations/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`

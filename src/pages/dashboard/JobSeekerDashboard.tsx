@@ -21,6 +21,7 @@ const JobSeekerDashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<JobSeeker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
     if (user) {
@@ -36,13 +37,13 @@ const JobSeekerDashboard = () => {
           const jobSeekerData = data[0];
           const jobSeeker: JobSeeker = {
             id: jobSeekerData.id || '',
-            user_id: jobSeekerData.user_id,
-            firstName: jobSeekerData.first_name,
-            lastName: jobSeekerData.last_name,
+            user: user, // from AuthContext
+            firstName: jobSeekerData.firstName || '',
+            lastName: jobSeekerData.lastName || '',
             location: jobSeekerData.location,
             phone: jobSeekerData.phone,
-            desiredSalary: jobSeekerData.desired_salary,
-            preferredJobTypes: jobSeekerData.preferred_job_types,
+            desiredSalary: jobSeekerData.desiredSalary,
+            preferredJobTypes: jobSeekerData.preferredJobTypes,
           };
           setProfile(jobSeeker);
         }
@@ -124,7 +125,7 @@ const JobSeekerDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
@@ -135,23 +136,23 @@ const JobSeekerDashboard = () => {
           </TabsList>
 
           <TabsContent value="profile">
-            <ProfileTab profile={profile} onUpdate={setProfile} />
+            <ProfileTab profile={profile} onUpdate={setProfile} onNextTab={() => setActiveTab('skills')} />
           </TabsContent>
 
           <TabsContent value="skills">
-            <SkillsTab jobSeekerId={profile?.id} />
+            <SkillsTab jobSeekerId={profile?.id} onNextTab={() => setActiveTab('experience')} />
           </TabsContent>
 
           <TabsContent value="experience">
-            <ExperienceTab jobSeekerId={profile?.id} />
+            <ExperienceTab jobSeekerId={profile?.id} onNextTab={() => setActiveTab('education')} />
           </TabsContent>
 
           <TabsContent value="education">
-            <EducationTab jobSeekerId={profile?.id} />
+            <EducationTab jobSeekerId={profile?.id} onNextTab={() => setActiveTab('certifications')} />
           </TabsContent>
 
           <TabsContent value="certifications">
-            <CertificationsTab jobSeekerId={profile?.id} />
+            <CertificationsTab jobSeekerId={profile?.id} onNextTab={() => setActiveTab('resume')} />
           </TabsContent>
 
           <TabsContent value="resume">

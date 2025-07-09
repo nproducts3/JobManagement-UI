@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Role, Organization } from '@/types/api';
 import { roleService, RoleData } from '@/services/roleService';
+import { UserManagementTable } from '@/components/admin/UserManagementTable';
+
+const USERS_PER_PAGE = 10;
 
 const CreateUser = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +27,9 @@ const CreateUser = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [userPage, setUserPage] = useState(1);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,7 +45,8 @@ const CreateUser = () => {
   useEffect(() => {
     fetchRoles();
     fetchOrganizations();
-  }, []);
+    fetchUsers(userPage);
+  }, [userPage]);
 
   const fetchRoles = async () => {
     try {
@@ -82,6 +89,27 @@ const CreateUser = () => {
         description: "Could not load organizations. Please select manually.",
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchUsers = async (page: number) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/users/paged?page=${page - 1}&size=${USERS_PER_PAGE}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers((data.content || []).slice(0, USERS_PER_PAGE));
+        setTotalUsers(data.totalElements || 0);
+      } else {
+        setUsers([]);
+        setTotalUsers(0);
+      }
+    } catch (error) {
+      setUsers([]);
+      setTotalUsers(0);
     }
   };
 
@@ -129,8 +157,8 @@ const CreateUser = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-2xl">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-2xl mb-8">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create New User</CardTitle>
           <CardDescription className="text-center">
@@ -261,6 +289,18 @@ const CreateUser = () => {
           </form>
         </CardContent>
       </Card>
+      {/* <div className="w-full max-w-6xl">
+        <UserManagementTable
+          users={users}
+          organizations={organizations}
+          onEditUser={() => {}}
+          onDeleteUser={() => {}}
+          currentPage={userPage}
+          totalUsers={totalUsers}
+          usersPerPage={USERS_PER_PAGE}
+          onPageChange={setUserPage}
+        />
+      </div> */}
     </div>
   );
 };

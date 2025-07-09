@@ -16,8 +16,8 @@ export const UserProfile = () => {
     switch (roleId) {
       case 'ROLE_ADMIN':
         return ' Admin';
-      case 'ROLE_EMPLOYEE':
-        return 'Employee';
+      case 'ROLE_EMPLOYER':
+        return 'Employer';
       case 'ROLE_JOBSEEKER':
         return 'Job Seeker';
       default:

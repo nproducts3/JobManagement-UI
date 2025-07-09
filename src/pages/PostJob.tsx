@@ -12,7 +12,6 @@ import { City, User } from '@/types/api';
 
 const PostJob = () => {
   const [formData, setFormData] = useState({
-    jobId: '',
     title: '',
     companyName: '',
     location: '',
@@ -153,16 +152,6 @@ const PostJob = () => {
             </div> */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="jobId">Job ID</Label>
-                <Input
-                  id="jobId"
-                  placeholder="Unique job identifier"
-                  value={formData.jobId}
-                  onChange={(e) => handleChange('jobId', e.target.value)}
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Job Title *</Label>
                 <Input
