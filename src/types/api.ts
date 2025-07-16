@@ -72,7 +72,11 @@ export interface JobSeekerEducation {
 export interface JobSeekerCertification {
   id: string;
   jobSeekerId: string;
-  certificationName?: string;
+  certificationName: string;
+  certificationFile?: string;
+  issuedDate?: string;
+  expiryDate?: string;
+  issuingOrganization?: string;
 }
 
 export interface JobResume {

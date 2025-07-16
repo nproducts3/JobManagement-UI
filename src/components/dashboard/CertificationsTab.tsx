@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { JobSeekerCertification } from '@/types/api';
 import { Plus, Edit, Trash2, Award } from 'lucide-react';
+import { certificationsService } from '@/services/certificationsService';
 
 interface CertificationsTabProps {
   jobSeekerId?: string;
@@ -21,6 +22,7 @@ export const CertificationsTab = ({ jobSeekerId, onNextTab }: CertificationsTabP
   const [certificationName, setCertificationName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (jobSeekerId) {
@@ -44,56 +46,42 @@ export const CertificationsTab = ({ jobSeekerId, onNextTab }: CertificationsTabP
     }
   };
 
+  // Handle file input change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFile(e.target.files?.[0] || null);
+  };
+
+  // Handle form submit for create/update
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jobSeekerId || !certificationName.trim()) return;
-
     setIsLoading(true);
-
+    // setError(null); // This state variable is not defined in the original file
     try {
-      const payload = {
-        jobSeekerId: jobSeekerId,
-        certificationName: certificationName.trim(),
-      };
-
-      const url = editingCertification 
-        ? `http://localhost:8080/api/job-seeker-certifications/${editingCertification.id}`
-        : 'http://localhost:8080/api/job-seeker-certifications';
-      const method = editingCertification ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        const certification = await response.json();
-        if (editingCertification) {
-          setCertifications(prev => prev.map(cert => 
-            cert.id === editingCertification.id ? certification : cert
-          ));
-        } else {
-          setCertifications(prev => [...prev, certification]);
-        }
-        
-        resetForm();
-        setIsDialogOpen(false);
-        toast({
-          title: "Success",
-          description: `Certification ${editingCertification ? 'updated' : 'added'} successfully.`,
-        });
-        if (onNextTab) onNextTab();
+      const formData = new FormData();
+      formData.append('jobSeekerId', jobSeekerId);
+      formData.append('certificationName', certificationName.trim());
+      if (file) formData.append('file', file);
+      let result;
+      if (editingCertification) {
+        result = await certificationsService.updateCertificationWithFile(editingCertification.id, formData);
       } else {
-        throw new Error('Failed to save certification');
+        result = await certificationsService.uploadCertification(formData);
       }
-    } catch (error) {
+      // ... refresh list, reset form, etc.
+      setFile(null);
+      setCertificationName('');
+      setEditingCertification(null);
+      fetchCertifications();
+      setIsDialogOpen(false);
+      toast({
+        title: "Success",
+        description: `Certification ${editingCertification ? 'updated' : 'added'} successfully.`,
+      });
+      if (onNextTab) onNextTab();
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "Failed to save certification. Please try again.",
+        description: err.message || "Failed to save certification. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -179,6 +167,20 @@ export const CertificationsTab = ({ jobSeekerId, onNextTab }: CertificationsTabP
                     onChange={(e) => setCertificationName(e.target.value)}
                     required
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="certification_file">Certification File</Label>
+                  <Input
+                    type="file"
+                    id="certification_file"
+                    accept=".pdf,.jpg,.png,.jpeg"
+                    onChange={handleFileChange}
+                  />
+                  {file && <span className="text-xs text-gray-600">{file.name}</span>}
+                  {/* Show uploaded file if editing */}
+                  {editingCertification && editingCertification.certificationFile && (
+                    <a href={`http://localhost:8080/uploads/certifications/${editingCertification.certificationFile}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-2">Download File</a>
+                  )}
                 </div>
               </div>
               <DialogFooter>

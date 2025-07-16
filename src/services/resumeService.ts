@@ -15,8 +15,7 @@ export const resumeService = {
   analyzeResume: async (file: File, jobSeekerId: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('jobSeekerId', jobSeekerId);
-    const response = await fetch(`${BASE_URL}/resume-analysis/analyze`, {
+    const response = await fetch(`${BASE_URL}/resume-analysis/analyze?jobSeekerId=${encodeURIComponent(jobSeekerId)}`, {
       method: 'POST',
       body: formData,
       headers: {

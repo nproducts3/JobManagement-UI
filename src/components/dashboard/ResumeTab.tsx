@@ -9,9 +9,45 @@ import { useToast } from '@/hooks/use-toast';
 import { JobResume } from '@/types/api';
 import { Upload, FileText, Download, Trash2, UploadCloud } from 'lucide-react';
 import { resumeService } from '@/services/resumeService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ResumeTabProps {
   jobSeekerId?: string;
+}
+
+interface JobMatch {
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  location?: string;
+  matchPercentage: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  categoryScores?: unknown;
+  jobDescription?: string;
+  qualifications?: string;
+  responsibilities?: string[];
+  benefits?: string[];
+  applyLink?: string;
+  salary?: string;
+  scheduleType?: string;
+}
+
+interface ResumeAnalysisResponse {
+  resumeId: string;
+  resumeFile: string;
+  resumeText: string;
+  uploadedAt: string;
+  jobSeekerId: string;
+  jobSeekerName: string;
+  extractedSkills: string[];
+  skillsByCategory: Record<string, string[]>;
+  jobMatches: JobMatch[];
+  averageMatchPercentage: number;
+  totalJobsAnalyzed: number;
+  highMatchJobs: number;
+  mediumMatchJobs: number;
+  lowMatchJobs: number;
 }
 
 type UploadState = 'idle' | 'uploading' | 'uploaded' | 'error';
@@ -19,18 +55,39 @@ type UploadState = 'idle' | 'uploading' | 'uploaded' | 'error';
 export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
   // Remove all CRUD resume state and handlers
   // Only keep state for analysis results
-  const [resumeAnalysis, setResumeAnalysis] = useState<any>(null);
+  const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysisResponse | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState('');
-  const [topMatches, setTopMatches] = useState<any[]>([]);
-  const [skillsExtracted, setSkillsExtracted] = useState<any>(null);
+  const [topMatches, setTopMatches] = useState<JobMatch[]>([]);
+  const [skillsExtracted, setSkillsExtracted] = useState<string[] | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    // On mount or when user/jobSeekerId changes, load stored resume for this user
+    if (user?.id || jobSeekerId) {
+      const key = `resumeInfo_${user?.id || jobSeekerId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const info = JSON.parse(stored);
+          if (info && info.filename) {
+            setUploadedFile({ name: info.filename } as File);
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
+    }
+  }, [user?.id, jobSeekerId]);
 
   // Handle file upload and analysis
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !jobSeekerId) return;
+    setUploadedFile(file);
     setAnalysisLoading(true);
     setAnalysisError(null);
     try {
@@ -43,11 +100,29 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
       if (analysis && analysis.resumeText) {
         localStorage.setItem('resumeText', analysis.resumeText);
       }
-    } catch (err: any) {
-      setAnalysisError(err.message || 'Failed to analyze resume');
+      if (analysis && analysis.jobMatches) {
+        localStorage.setItem('resumeJobMatches', JSON.stringify(analysis.jobMatches));
+      }
+      // Store resume info per user
+      const key = `resumeInfo_${user?.id || jobSeekerId}`;
+      localStorage.setItem(key, JSON.stringify({ filename: file.name, resumeId: analysis?.resumeId }));
+    } catch (err: unknown) {
+      setAnalysisError((err as Error).message || 'Failed to analyze resume');
     } finally {
       setAnalysisLoading(false);
     }
+  };
+
+  const handleCancelUpload = () => {
+    setUploadedFile(null);
+    setResumeAnalysis(null);
+    setAnalysisError(null);
+    // Also clear file input value
+    const input = document.getElementById('resume-upload-input') as HTMLInputElement | null;
+    if (input) input.value = '';
+    // Remove stored resume info for this user
+    const key = `resumeInfo_${user?.id || jobSeekerId}`;
+    localStorage.removeItem(key);
   };
 
   // Handle resume text analysis (top matches)
@@ -58,8 +133,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
     try {
       const matches = await resumeService.getTopMatches(resumeText, 10);
       setTopMatches(matches);
-    } catch (err: any) {
-      setAnalysisError(err.message || 'Failed to get top matches');
+    } catch (err: unknown) {
+      setAnalysisError((err as Error).message || 'Failed to get top matches');
     } finally {
       setAnalysisLoading(false);
     }
@@ -73,8 +148,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
     try {
       const skills = await resumeService.extractSkills(resumeText);
       setSkillsExtracted(skills);
-    } catch (err: any) {
-      setAnalysisError(err.message || 'Failed to extract skills');
+    } catch (err: unknown) {
+      setAnalysisError((err as Error).message || 'Failed to extract skills');
     } finally {
       setAnalysisLoading(false);
     }
@@ -113,9 +188,18 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
               style={{ display: 'none' }}
               onChange={handleFileUpload}
             />
-            <Button onClick={() => document.getElementById('resume-upload-input')?.click()}>
-              Upload Resume
-            </Button>
+            {uploadedFile ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">{uploadedFile.name}</span>
+                <Button size="icon" variant="ghost" onClick={handleCancelUpload} aria-label="Cancel upload">
+                  ×
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => document.getElementById('resume-upload-input')?.click()}>
+                Upload Resume
+              </Button>
+            )}
           </div>
           {analysisLoading && (
             <div className="my-4 text-blue-600">Analyzing resume, please wait...</div>
@@ -126,39 +210,79 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
           {/* Analysis Results */}
           {resumeAnalysis && (
             <div className="mt-6">
-              <h3 className="font-semibold mb-2">Job Match Analysis</h3>
-              {resumeAnalysis.matches && resumeAnalysis.matches.length > 0 ? (
-                <table className="min-w-full border text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border px-2 py-1">Job Title</th>
-                      <th className="border px-2 py-1">Company</th>
-                      <th className="border px-2 py-1">Match %</th>
-                      <th className="border px-2 py-1">Matched Skills</th>
-                      <th className="border px-2 py-1">Missing Skills</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {resumeAnalysis.matches.map((match: any, idx: number) => (
-                      <tr key={idx}>
-                        <td className="border px-2 py-1">{match.jobTitle}</td>
-                        <td className="border px-2 py-1">{match.companyName}</td>
-                        <td className="border px-2 py-1">{match.matchPercentage}%</td>
-                        <td className="border px-2 py-1">{(match.matchedSkills || []).join(', ')}</td>
-                        <td className="border px-2 py-1">{(match.missingSkills || []).join(', ')}</td>
-                      </tr>
+              <h3 className="font-semibold mb-2">Top Job Recommendations for You</h3>
+              {resumeAnalysis.jobMatches && resumeAnalysis.jobMatches.length > 0 ? (
+                <div className="space-y-6">
+                  {resumeAnalysis.jobMatches
+                    .sort((a: JobMatch, b: JobMatch) => b.matchPercentage - a.matchPercentage)
+                    .slice(0, 3)
+                    .map((match: JobMatch, idx: number) => (
+                      <Card key={match.jobId || idx} className="border shadow-sm">
+                        <CardHeader>
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div>
+                              <CardTitle>{match.jobTitle} <span className="text-gray-500 font-normal">at {match.companyName}</span></CardTitle>
+                              <CardDescription className="text-xs mt-1">{match.location}</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold text-lg ${getMatchColor(match.matchPercentage)}`}>{match.matchPercentage}% match</span>
+                              <a href={match.applyLink} target="_blank" rel="noopener noreferrer">
+                                <Button size="sm" variant="outline">Apply</Button>
+                              </a>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="mb-2">
+                            <span className="font-medium">Matched Skills: </span>
+                            {match.matchedSkills && match.matchedSkills.length > 0 ? (
+                              <span className="text-green-700">{match.matchedSkills.join(', ')}</span>
+                            ) : <span className="text-gray-500">None</span>}
+                          </div>
+                          <div className="mb-2">
+                            <span className="font-medium">Missing Skills: </span>
+                            {match.missingSkills && match.missingSkills.length > 0 ? (
+                              <span className="text-red-700">{match.missingSkills.join(', ')}</span>
+                            ) : <span className="text-green-700">None! You’re a perfect match.</span>}
+                          </div>
+                          {/* Smart Suggestions Section */}
+                          <div className="mt-3 p-3 bg-gray-50 rounded">
+                            <div className="font-semibold mb-1">How to Improve Your Match</div>
+                            <ul className="list-disc ml-5 text-sm space-y-1">
+                              {/* Suggest missing skills */}
+                              {match.missingSkills && match.missingSkills.length > 0 && match.missingSkills.map((skill: string) => (
+                                <li key={skill}>Add or highlight experience with <b>{skill}</b> in your resume.</li>
+                              ))}
+                              {/* Suggest missing qualifications */}
+                              {match.qualifications && resumeAnalysis.resumeText &&
+                                match.qualifications.split(/[.,•\n]/).map((qual: string, i: number) => {
+                                  const qualTrim = qual.trim();
+                                  if (qualTrim && !resumeAnalysis.resumeText.toLowerCase().includes(qualTrim.toLowerCase().slice(0, 8))) {
+                                    return <li key={i}>Consider including: <b>{qualTrim}</b></li>;
+                                  }
+                                  return null;
+                                })}
+                              {/* Suggest keywords from responsibilities */}
+                              {match.responsibilities && Array.isArray(match.responsibilities) && match.responsibilities.map((resp: string, i: number) => {
+                                if (resumeAnalysis.resumeText && !resumeAnalysis.resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8))) {
+                                  return <li key={i + 'resp'}>Mention experience with: <b>{resp}</b></li>;
+                                }
+                                return null;
+                              })}
+                              {/* If no suggestions */}
+                              {(!match.missingSkills || match.missingSkills.length === 0) &&
+                                (!match.qualifications || match.qualifications.split(/[.,•\n]/).every((qual: string) => !qual.trim() || (resumeAnalysis.resumeText && resumeAnalysis.resumeText.toLowerCase().includes(qual.trim().toLowerCase().slice(0, 8))))) &&
+                                (!match.responsibilities || match.responsibilities.every((resp: string) => resumeAnalysis.resumeText && resumeAnalysis.resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8)))) && (
+                                  <li>No major gaps detected. Your resume is a great fit!</li>
+                                )}
+                            </ul>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </tbody>
-                </table>
+                </div>
               ) : (
                 <div>No job matches found.</div>
-              )}
-              {/* Summary Section */}
-              {resumeAnalysis.summary && (
-                <div className="mt-4 p-2 bg-gray-50 rounded">
-                  <h4 className="font-medium mb-1">Summary</h4>
-                  <pre className="whitespace-pre-wrap text-xs">{resumeAnalysis.summary}</pre>
-                </div>
               )}
             </div>
           )}

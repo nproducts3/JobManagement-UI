@@ -28,16 +28,6 @@ export const certificationsService = {
     return response.json();
   },
 
-  getByJobSeekerId: async (jobSeekerId: string): Promise<CertificationData[]> => {
-    const response = await fetch(`${BASE_URL}/job-seeker-certifications?job_seeker_id=${jobSeekerId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch certifications');
-    return response.json();
-  },
-
   create: async (data: CertificationData): Promise<CertificationData> => {
     const response = await fetch(`${BASE_URL}/job-seeker-certifications`, {
       method: 'POST',
@@ -72,5 +62,42 @@ export const certificationsService = {
       }
     });
     if (!response.ok) throw new Error('Failed to delete certification');
-  }
+  },
+
+  // Upload a new certification with file
+  uploadCertification: async (formData: FormData) => {
+    const response = await fetch(`${BASE_URL}/job-seeker-certifications/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to upload certification');
+    return response.json();
+  },
+
+  // Update an existing certification with file
+  updateCertificationWithFile: async (id: string, formData: FormData) => {
+    const response = await fetch(`${BASE_URL}/job-seeker-certifications/${id}/upload`, {
+      method: 'PUT',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to update certification');
+    return response.json();
+  },
+
+  // Get certifications by job seeker
+  getByJobSeekerId: async (jobSeekerId: string) => {
+    const response = await fetch(`${BASE_URL}/job-seeker-certifications/job-seeker/${jobSeekerId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch certifications');
+    return response.json();
+  },
 };

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Search, MapPin, Clock, Star, Bookmark, Filter as FilterIcon } from 'lucide-react';
+import { Search, MapPin, Clock, Star, Bookmark, Filter as FilterIcon, Sparkles } from 'lucide-react';
 import { GoogleJob } from '@/types/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -98,6 +98,7 @@ const JobsList = () => {
   const [jobseekers, setJobseekers] = useState<any[]>([]);
   const [selectedJobseeker, setSelectedJobseeker] = useState<string>('');
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<string | null>(null);
 
   // Read user's extracted skills from localStorage
   let userSkills: string[] = [];
@@ -105,6 +106,19 @@ const JobsList = () => {
     const stored = localStorage.getItem('resumeSkills');
     if (stored) userSkills = JSON.parse(stored);
   } catch {}
+
+  // Read backend jobMatches from localStorage
+  let jobMatches: any[] = [];
+  try {
+    const storedMatches = localStorage.getItem('resumeJobMatches');
+    if (storedMatches) jobMatches = JSON.parse(storedMatches);
+  } catch {}
+
+  // Helper to get backend match percentage for a job
+  function getBackendMatchPercentage(jobId: string): number | null {
+    const match = jobMatches.find((m) => m.jobId === jobId);
+    return match ? Math.round(match.matchPercentage) : null;
+  }
 
   useEffect(() => {
     fetchJobs();
@@ -516,9 +530,10 @@ const JobsList = () => {
           {/* Jobs List */}
           <div className="space-y-4">
             {sortedJobs.map((job) => {
-              const matchPercentage = userSkills.length > 0 && job.extractedSkills && job.extractedSkills.length > 0
-                ? calculateSkillMatch(userSkills, job.extractedSkills)
-                : 0;
+              const backendMatch = getBackendMatchPercentage(job.id);
+              // Find the jobMatch object for this job
+              const jobMatch = jobMatches.find((m) => m.jobId === job.id);
+              const aiSuggestions = jobMatch?.aiSuggestions;
               const companyName = job.companyName || 'Unknown Company';
               const jobTitle = job.title || 'Unknown Position';
               
@@ -598,14 +613,23 @@ const JobsList = () => {
                               <Star
                                 key={i}
                                 className={`h-4 w-4 ${
-                                  i < Math.floor(matchPercentage / 20) 
+                                  i < Math.floor(backendMatch / 20) 
                                     ? 'fill-yellow-400 text-yellow-400' 
                                     : 'text-gray-300'
                                 }`}
                               />
                             ))}
                           </div>
-                          <span className="text-sm font-medium">{matchPercentage}% Match</span>
+                          <span className="text-sm font-medium">{backendMatch}% Match</span>
+                          {aiSuggestions && (
+                            <button
+                              title="Gemini AI Suggestions"
+                              onClick={() => setSelectedSuggestions(aiSuggestions)}
+                              className="p-1 rounded hover:bg-blue-100"
+                            >
+                              <Sparkles className="w-5 h-5 text-blue-500" />
+                            </button>
+                          )}
                         </div>
                         
                         <Button 
@@ -693,6 +717,19 @@ const JobsList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Gemini AI Suggestions Modal */}
+      {selectedSuggestions && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+            <h2 className="text-lg font-bold mb-2">Gemini AI Suggestions</h2>
+            <div className="prose max-h-96 overflow-y-auto" dangerouslySetInnerHTML={{ __html: selectedSuggestions.replace(/\n/g, '<br/>') }} />
+            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setSelectedSuggestions(null)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
