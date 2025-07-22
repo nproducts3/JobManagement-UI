@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import PostJob from "./pages/PostJob";
 import NotFound from "./pages/NotFound";
 import FirebaseLogin from "./pages/auth/FirebaseLogin";
+import SmartResumeAI from "./pages/SmartResumeAI";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/profile" element={<Layout><Profile /></Layout>} />
             <Route path="/post-job" element={<Layout><PostJob /></Layout>} />
             <Route path="/firebase-login" element={<FirebaseLogin />} />
+            <Route path="/smart-resume-ai" element={<Layout><SmartResumeAI /></Layout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

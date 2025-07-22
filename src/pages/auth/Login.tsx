@@ -38,6 +38,12 @@ const Login = () => {
         title: "Success",
         description: "You have been logged in successfully.",
       });
+      // Ensure jobSeekerId is stored after login
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        const { ensureJobSeekerIdInStorage } = await import('@/utils/jobSeeker');
+        await ensureJobSeekerIdInStorage(userId);
+      }
       // Role-based redirect
       navigate(redirectPath);
     } catch (error) {
@@ -80,7 +86,11 @@ const Login = () => {
       setToken(data.token);
       // Store userId for AuthContext
       localStorage.setItem("userId", data.id);
-
+      // Ensure jobSeekerId is stored after Google login
+      if (data && data.id) {
+        const { ensureJobSeekerIdInStorage } = await import('@/utils/jobSeeker');
+        await ensureJobSeekerIdInStorage(data.id);
+      }
       // Redirect to jobseeker dashboard
       navigate("/dashboard");
     } catch (err: any) {
