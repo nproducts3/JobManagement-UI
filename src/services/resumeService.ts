@@ -52,5 +52,22 @@ export const resumeService = {
     });
     if (!response.ok) throw new Error('Failed to extract skills');
     return response.json();
+  },
+
+  // Get resume text match for a specific jobSeekerId and googleJobId
+  getResumeTextMatch: async (jobSeekerId: string, googleJobId: string) => {
+    const response = await fetch(`${BASE_URL}/resume-analysis/resume-text-match?jobSeekerId=${encodeURIComponent(jobSeekerId)}&googleJobId=${encodeURIComponent(googleJobId)}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch resume text match');
+    const data = await response.json();
+    // Expecting data to have matchPercentage, resumeText, aiSuggestions
+    return {
+      matchPercentage: data.matchPercentage,
+      resumeText: data.resumeText,
+      aiSuggestions: data.aiSuggestions
+    };
   }
 };

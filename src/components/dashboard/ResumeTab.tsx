@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useResumeAnalysis, JobMatch } from '@/contexts/ResumeAnalysisContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,23 +16,7 @@ interface ResumeTabProps {
   jobSeekerId?: string;
 }
 
-interface JobMatch {
-  jobId: string;
-  jobTitle: string;
-  companyName: string;
-  location?: string;
-  matchPercentage: number;
-  matchedSkills: string[];
-  missingSkills: string[];
-  categoryScores?: unknown;
-  jobDescription?: string;
-  qualifications?: string;
-  responsibilities?: string[];
-  benefits?: string[];
-  applyLink?: string;
-  salary?: string;
-  scheduleType?: string;
-}
+
 
 interface ResumeAnalysisResponse {
   resumeId: string;
@@ -53,6 +38,20 @@ interface ResumeAnalysisResponse {
 type UploadState = 'idle' | 'uploading' | 'uploaded' | 'error';
 
 export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
+  const { resumeAnalysisData, setResumeAnalysisData } = useResumeAnalysis();
+
+  // Restore resume analysis from localStorage if context is empty
+  useEffect(() => {
+    if (!resumeAnalysisData?.jobMatches?.length) {
+      const stored = localStorage.getItem('resumeAnalysisData');
+      if (stored) {
+        try {
+          setResumeAnalysisData(JSON.parse(stored));
+        } catch {}
+      }
+    }
+  }, []);
+
   // Remove all CRUD resume state and handlers
   // Only keep state for analysis results
   const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysisResponse | null>(null);
@@ -64,6 +63,10 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  useEffect(() => {
+    // No need to fetch or set jobSeekerId internally; rely on the prop value.
+  }, [user]);
 
   useEffect(() => {
     // On mount or when user/jobSeekerId changes, load stored resume for this user
@@ -93,6 +96,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
     try {
       const analysis = await resumeService.analyzeResume(file, jobSeekerId);
       setResumeAnalysis(analysis);
+      setResumeAnalysisData(analysis); // <-- update shared context
+      localStorage.setItem('resumeAnalysisData', JSON.stringify(analysis)); // persist full analysis for permanent recommendations
       // Store extracted skills and text in localStorage for cross-page access
       if (analysis && analysis.extractedSkills) {
         localStorage.setItem('resumeSkills', JSON.stringify(analysis.extractedSkills));
@@ -101,7 +106,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
         localStorage.setItem('resumeText', analysis.resumeText);
       }
       if (analysis && analysis.jobMatches) {
-        localStorage.setItem('resumeJobMatches', JSON.stringify(analysis.jobMatches));
+        // Store job matches with jobSeekerId for cross-tab consistency
+        localStorage.setItem('resumeJobMatches', JSON.stringify({ jobSeekerId: analysis.jobSeekerId || jobSeekerId, matches: analysis.jobMatches }));
       }
       // Store resume info per user
       const key = `resumeInfo_${user?.id || jobSeekerId}`;
@@ -112,6 +118,7 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
       setAnalysisLoading(false);
     }
   };
+
 
   const handleCancelUpload = () => {
     setUploadedFile(null);
@@ -208,16 +215,16 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
             <div className="my-4 text-red-600">{analysisError}</div>
           )}
           {/* Analysis Results */}
-          {resumeAnalysis && (
+          {(resumeAnalysis || resumeAnalysisData) && (
             <div className="mt-6">
               <h3 className="font-semibold mb-2">Top Job Recommendations for You</h3>
-              {resumeAnalysis.jobMatches && resumeAnalysis.jobMatches.length > 0 ? (
+              {resumeAnalysisData?.jobMatches && resumeAnalysisData.jobMatches.length > 0 ? (
                 <div className="space-y-6">
-                  {resumeAnalysis.jobMatches
+                  {resumeAnalysisData.jobMatches
                     .sort((a: JobMatch, b: JobMatch) => b.matchPercentage - a.matchPercentage)
                     .slice(0, 3)
                     .map((match: JobMatch, idx: number) => (
-                      <Card key={match.jobId || idx} className="border shadow-sm">
+                      <Card key={match.googleJobId || idx} className="border shadow-sm">
                         <CardHeader>
                           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                             <div>
@@ -254,25 +261,33 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
                                 <li key={skill}>Add or highlight experience with <b>{skill}</b> in your resume.</li>
                               ))}
                               {/* Suggest missing qualifications */}
-                              {match.qualifications && resumeAnalysis.resumeText &&
+                              {match.qualifications && (resumeAnalysis?.resumeText || resumeAnalysisData?.resumeText) &&
                                 match.qualifications.split(/[.,•\n]/).map((qual: string, i: number) => {
                                   const qualTrim = qual.trim();
-                                  if (qualTrim && !resumeAnalysis.resumeText.toLowerCase().includes(qualTrim.toLowerCase().slice(0, 8))) {
+                                  const resumeText = resumeAnalysis?.resumeText || resumeAnalysisData?.resumeText || '';
+                                  if (qualTrim && !resumeText.toLowerCase().includes(qualTrim.toLowerCase().slice(0, 8))) {
                                     return <li key={i}>Consider including: <b>{qualTrim}</b></li>;
                                   }
                                   return null;
                                 })}
                               {/* Suggest keywords from responsibilities */}
                               {match.responsibilities && Array.isArray(match.responsibilities) && match.responsibilities.map((resp: string, i: number) => {
-                                if (resumeAnalysis.resumeText && !resumeAnalysis.resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8))) {
+                                const resumeText = resumeAnalysis?.resumeText || resumeAnalysisData?.resumeText || '';
+                                if (resumeText && !resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8))) {
                                   return <li key={i + 'resp'}>Mention experience with: <b>{resp}</b></li>;
                                 }
                                 return null;
                               })}
                               {/* If no suggestions */}
                               {(!match.missingSkills || match.missingSkills.length === 0) &&
-                                (!match.qualifications || match.qualifications.split(/[.,•\n]/).every((qual: string) => !qual.trim() || (resumeAnalysis.resumeText && resumeAnalysis.resumeText.toLowerCase().includes(qual.trim().toLowerCase().slice(0, 8))))) &&
-                                (!match.responsibilities || match.responsibilities.every((resp: string) => resumeAnalysis.resumeText && resumeAnalysis.resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8)))) && (
+                                (!match.qualifications || match.qualifications.split(/[.,•\n]/).every((qual: string) => {
+                                  const resumeText = resumeAnalysis?.resumeText || resumeAnalysisData?.resumeText || '';
+                                  return !qual.trim() || (resumeText && resumeText.toLowerCase().includes(qual.trim().toLowerCase().slice(0, 8)));
+                                })) &&
+                                (!match.responsibilities || match.responsibilities.every((resp: string) => {
+                                  const resumeText = resumeAnalysis?.resumeText || resumeAnalysisData?.resumeText || '';
+                                  return resumeText && resumeText.toLowerCase().includes(resp.toLowerCase().slice(0, 8));
+                                })) && (
                                   <li>No major gaps detected. Your resume is a great fit!</li>
                                 )}
                             </ul>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { UploadCloud, FileText, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { getJobSeekerId } from '@/utils/jobSeeker';
+import { resumeService } from '@/services/resumeService';
 
 interface JobMatch {
   jobId: string;
@@ -71,44 +72,26 @@ const SmartResumeAI: React.FC = () => {
     setIsUploading(true);
     setUploadProgress(0);
     setError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('jobSeekerId', jobSeekerId);
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `/api/resume-analysis/analyze?jobSeekerId=${jobSeekerId}`);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          setUploadProgress(Math.round((event.loaded / event.total) * 100));
-        }
-      };
-      xhr.onload = () => {
-        setIsUploading(false);
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          setAnalysis(data);
-          setResumeText(data.resumeText);
-          setSelectedJobId(data.jobMatches[0]?.jobId || '');
-          setCanDownload(false);
-          // Store job matches with jobSeekerId in localStorage for cross-tab consistency
-          const jobSeekerId = data.jobSeekerId || (typeof getJobSeekerId === 'function' ? getJobSeekerId() : null);
-          if (jobSeekerId && Array.isArray(data.jobMatches)) {
-            localStorage.setItem('resumeJobMatches', JSON.stringify({ jobSeekerId, matches: data.jobMatches }));
-          }
-        } else {
-          setError('Failed to analyze resume. Please try again.');
-        }
-      };
-      xhr.onerror = () => {
-        setIsUploading(false);
-        setError('Upload failed. Please check your connection.');
-      };
-      xhr.send(formData);
+      // Use the resumeService to upload and analyze the resume
+      const data = await resumeService.analyzeResume(file, jobSeekerId);
+      setAnalysis(data);
+      setResumeText(data.resumeText);
+      setSelectedJobId(data.jobMatches[0]?.jobId || '');
+      setCanDownload(false);
+      // Store job matches with jobSeekerId in localStorage for cross-tab consistency
+      const jobSeekerIdFromResp = data.jobSeekerId || jobSeekerId;
+      if (jobSeekerIdFromResp && Array.isArray(data.jobMatches)) {
+        localStorage.setItem('resumeJobMatches', JSON.stringify({ jobSeekerId: jobSeekerIdFromResp, matches: data.jobMatches }));
+      }
+      setUploadProgress(100);
     } catch (err) {
+      setError('Failed to analyze resume. Please try again.');
+    } finally {
       setIsUploading(false);
-      setError('Unexpected error during upload.');
     }
   };
+
 
   const selectedJob = analysis?.jobMatches.find(j => j.jobId === selectedJobId);
   const suggestions = parseSuggestions(selectedJob?.aiSuggestions || '');

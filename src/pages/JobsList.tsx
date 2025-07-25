@@ -15,16 +15,21 @@ import ResumeOptimizationDashboard from '@/components/ResumeOptimizationDashboar
 import { Progress } from '@/components/ui/progress';
 import JobSuggestions from '@/components/JobSuggestions';
 import { SuggestionCard, Suggestion } from '@/components/JobSuggestions';
+import { Document, Packer, Paragraph } from "docx";
+import { saveAs } from "file-saver";
 
 import { getJobSeekerId } from '@/utils/jobSeeker';
+import { resumeService } from '@/services/resumeService';
+import { useResumeAnalysis } from '@/contexts/ResumeAnalysisContext';
+
 // Update JobMatch interface
 declare interface JobMatch {
   jobId: string;
   googleJobId?: string;
   matchPercentage: number;
   aiSuggestions?: string;
-  appliedSuggestions?: string[];
-  resumeId?: string;
+  matchedSkills?: string[];
+  missingSkills?: string[];
 }
 
 const KNOWN_SKILLS = ['JavaScript', 'React', 'Python', 'AWS', 'Node.js', 'TypeScript'];
@@ -129,7 +134,16 @@ const parseSuggestions = (aiSuggestions: unknown): Suggestion[] => {
     }));
 };
 
+// Helper function to get match color based on percentage
+const getMatchColor = (percentage: number) => {
+  if (percentage >= 80) return 'text-green-600';
+  if (percentage >= 60) return 'text-yellow-600';
+  return 'text-red-600';
+};
+
 const JobsList = () => {
+  // Use resume analysis context to access jobMatches and resume-level data
+  const { resumeAnalysisData } = useResumeAnalysis();
   const { isAuthenticated, role } = useAuth();
   const [jobs, setJobs] = useState<GoogleJob[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
@@ -166,6 +180,58 @@ const JobsList = () => {
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   const [showJobseekerDialog, setShowJobseekerDialog] = useState(false);
+// State for per-modal suggestions and match percentage
+const [modalState, setModalState] = useState<Record<string, { suggestions: string, matchPercentage: number, resumeText: string }>>({});
+
+  // Handler for Auto Fix button on each suggestion
+  const handleAutoFix = async ({
+    suggestion,
+    resumeText,
+    googleJobId,
+    jobSeekerId,
+    contextMatch,
+    updateContextMatch
+  }: {
+    suggestion: string,
+    resumeText: string,
+    googleJobId: string,
+    jobSeekerId: string,
+    contextMatch: JobMatch,
+    updateContextMatch: (data: { suggestions: string, matchPercentage: number, resumeText: string }) => void
+  }) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/resume-analysis/auto-improve', {
+        method: 'POST',
+        headers: {
+          'accept': '*/*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'auto-improve',
+          resumeText,
+          googleJobId,
+          jobSeekerId,
+          suggestion,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to auto-improve resume');
+      const data = await response.json();
+      // Update resume text in localStorage and state
+      if (data.resumeText) {
+        setResumeText(data.resumeText);
+        localStorage.setItem('resumeText', data.resumeText);
+      }
+      if (data.suggestions && typeof data.matchPercentage === 'number') {
+        updateContextMatch({
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions.join('\n') : data.suggestions,
+          matchPercentage: data.matchPercentage,
+          resumeText: data.resumeText,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
   const [jobseekers, setJobseekers] = useState<JobSeeker[]>([]);
   const [selectedJobseeker, setSelectedJobseeker] = useState<string>('');
   const [pendingJobId, setPendingJobId] = useState<string | null>(null);
@@ -175,59 +241,14 @@ const JobsList = () => {
   const [dashboardScore, setDashboardScore] = useState(0);
   const [dashboardStats, setDashboardStats] = useState({ suggestionsFound: 0, completed: 0, remaining: 0, pointsGained: 0 });
   const [dashboardLoading, setDashboardLoading] = useState(false);
-  const [jobSuggestions, setJobSuggestions] = useState<Record<string, { suggestions: string[]; match: number }>>({});
   const [resumeText, setResumeText] = useState<string>(localStorage.getItem('resumeText') || '');
   const [isApplying, setIsApplying] = useState<Record<string, boolean>>({});
   const [showSuggestionsModal, setShowSuggestionsModal] = useState<Record<string, boolean>>({});
-  const [perJobSuggestions, setPerJobSuggestions] = useState<Record<string, Suggestion[]>>({});
-  const [perJobMatch, setPerJobMatch] = useState<Record<string, number>>({});
-  const [perJobResumeText, setPerJobResumeText] = useState<Record<string, string>>({});
-  const [perJobIsApplying, setPerJobIsApplying] = useState<Record<string, boolean>>({});
-  const [perJobCanDownload, setPerJobCanDownload] = useState<Record<string, boolean>>({});
-  const [appliedSuggestions, setAppliedSuggestions] = useState<Record<string, string[]>>({});
-  // Add resumeId state if missing
-  const [resumeId, setResumeId] = useState<string | null>(null);
-  // Add state for backend match percentages
-  const [backendMatchPercentages, setBackendMatchPercentages] = useState<Record<string, number>>({});
 
   // Get jobSeekerId robustly via utility (matches ResumeTab)
   const jobSeekerId = getJobSeekerId();
 
-  // Function to fetch match percentage for a single job
-  const fetchJobMatchPercentage = async (jobId: string, googleJobId: string) => {
-    if (!jobSeekerId) return;
-    try {
-      const response = await fetch(
-        `http://localhost:8080/api/resume-analysis/job/${googleJobId}/match-percentages?jobSeekerId=${jobSeekerId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Match API response for', googleJobId, data); // Debug
-        // If the response is an array, find the right object
-        if (Array.isArray(data) && data.length > 0) {
-          // If jobSeekerId is present in the object, filter by it, else just use the first
-          const matchObj = data.find(
-            (obj) => obj.jobSeekerId === jobSeekerId
-          ) || data[0];
-          if (typeof matchObj.matchPercentage === 'number') {
-            setBackendMatchPercentages(prev => ({
-              ...prev,
-              [googleJobId]: Math.round(matchObj.matchPercentage)
-            }));
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to fetch match percentage for job ${googleJobId}:`, error);
-    }
-  };
-
+  // No need to fetch job match and suggestions; all data comes from resumeAnalysisData.jobMatches
   // On mount, always check if resumeJobMatches is for the current jobSeekerId
   useEffect(() => {
     async function fetchResumeJobMatches() {
@@ -239,7 +260,6 @@ const JobsList = () => {
           const parsed = JSON.parse(jobMatchesStored);
           if (parsed.jobSeekerId === jobSeekerId && Array.isArray(parsed.matches)) {
             jobMatches = parsed.matches.filter(m => m.jobSeekerId === jobSeekerId);
-          
           } else {
             // Remove stale/other-user matches
             localStorage.removeItem('resumeJobMatches');
@@ -267,76 +287,6 @@ const JobsList = () => {
     }
     fetchResumeJobMatches();
   }, [jobSeekerId]);
-
-  // On mount, load job suggestions from localStorage (from resume analysis)
-  useEffect(() => {
-    const jobMatchesStored = localStorage.getItem('resumeJobMatches');
-    if (jobMatchesStored) {
-      try {
-        const jobMatches = JSON.parse(jobMatchesStored);
-        const newJobSuggestions: Record<string, { suggestions: string[]; match: number }> = {};
-        jobMatches.forEach((jm: JobMatch) => {
-          newJobSuggestions[jm.jobId] = {
-            suggestions: jm.aiSuggestions ? jm.aiSuggestions.split(/\n\n|\n/).filter((s: string) => s.trim() !== '') : [],
-            match: jm.matchPercentage || 0,
-          };
-        });
-        setJobSuggestions(newJobSuggestions);
-      } catch { /* ignore error */ }
-    }
-  }, []);
-
-  // On mount, initialize per-job suggestions, match, and appliedSuggestions from localStorage
-  useEffect(() => {
-    const jobMatchesStored = localStorage.getItem('resumeJobMatches');
-    const resumeTextStored = localStorage.getItem('resumeText') || '';
-    const resumeIdStored = localStorage.getItem('resumeId') || '';
-    if (jobMatchesStored) {
-      try {
-        const jobMatches = JSON.parse(jobMatchesStored);
-        const suggestions: Record<string, Suggestion[]> = {};
-        const match: Record<string, number> = {};
-        const resumeText: Record<string, string> = {};
-        const canDownload: Record<string, boolean> = {};
-        const applied: Record<string, string[]> = {};
-        jobMatches.forEach((jm: JobMatch) => {
-          suggestions[jm.jobId] = parseSuggestions(jm.aiSuggestions || '');
-          match[jm.jobId] = jm.matchPercentage || 0;
-          resumeText[jm.jobId] = resumeTextStored;
-          canDownload[jm.jobId] = false;
-          applied[jm.jobId] = jm.appliedSuggestions || [];
-        });
-        setPerJobSuggestions(suggestions);
-        setPerJobMatch(match);
-        setPerJobResumeText(resumeText);
-        setPerJobCanDownload(canDownload);
-        setAppliedSuggestions(applied);
-        if (resumeIdStored) {
-          setResumeId(resumeIdStored);
-        }
-      } catch { /* ignore error */ }
-    }
-  }, []);
-
-  // Read user's extracted skills from localStorage
-  let userSkills: string[] = [];
-  try {
-    const stored = localStorage.getItem('resumeSkills');
-    if (stored) userSkills = JSON.parse(stored);
-  } catch { /* ignore error */ }
-
-  // Read backend jobMatches from localStorage
-  let jobMatches: JobMatch[] = [];
-  try {
-    const storedMatches = localStorage.getItem('resumeJobMatches');
-    if (storedMatches) jobMatches = JSON.parse(storedMatches);
-  } catch { /* ignore error */ }
-
-  // Helper to get backend match percentage for a job
-  function getBackendMatchPercentage(jobId: string): number | null {
-    const match = jobMatches.find((m) => m.jobId === jobId);
-    return match ? Math.round(match.matchPercentage) : null;
-  }
 
   useEffect(() => {
     fetchJobs();
@@ -374,11 +324,6 @@ const JobsList = () => {
         }));
         setJobs(jobsWithExtracted);
         setTotalJobs(data.totalElements);
-        // Fetch match percentages for each job using googleJobId
-        jobsWithExtracted.forEach(job => {
-          const googleJobId = getGoogleJobId(job);
-          fetchJobMatchPercentage(job.id, googleJobId);
-        });
       }
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
@@ -426,16 +371,6 @@ const JobsList = () => {
         navigate(`/google-jobs/${pendingJobId}`);
       }, 100); // Small delay for dialog close
     }
-  };
-
-  // Helper to get the best available match percentage (backend first, then localStorage fallback)
-  const getMatchPercentage = (jobId: string, googleJobId?: string): number => {
-    // First try backend match percentage using googleJobId
-    if (googleJobId && backendMatchPercentages[googleJobId] !== undefined) {
-      return backendMatchPercentages[googleJobId];
-    }
-    // Fallback to localStorage match percentage
-    return perJobMatch[jobId] || 0;
   };
 
   const resetFilters = () => {
@@ -639,9 +574,7 @@ const JobsList = () => {
   const handleApplySuggestion = async (jobId: string, suggestion: string) => {
     setIsApplying(prev => ({ ...prev, [jobId]: true }));
     // 1. Use smarter logic
-    const updatedResumeText = applySuggestionToResume(resumeText, suggestion);
-    setResumeText(updatedResumeText);
-    localStorage.setItem('resumeText', updatedResumeText);
+    const updatedResumeText = applySuggestionToResume(resumeAnalysisData?.resumeText || '', suggestion);
     // 2. Re-analyze resume
     const jobSeekerId = getJobSeekerId();
     if (!jobSeekerId) {
@@ -661,13 +594,6 @@ const JobsList = () => {
       const analysis = await res.json();
       // Find the job match for this job
       const match = analysis.jobMatches.find((jm: JobMatch) => jm.jobId === jobId);
-      setJobSuggestions(prev => ({
-        ...prev,
-        [jobId]: {
-          suggestions: match && match.aiSuggestions ? match.aiSuggestions.split(/\n\n|\n/).filter((s: string) => s.trim() !== '') : [],
-          match: match ? match.matchPercentage : prev[jobId]?.match || 0,
-        },
-      }));
     } catch { /* ignore error */ }
     setIsApplying(prev => ({ ...prev, [jobId]: false }));
   };
@@ -677,75 +603,35 @@ const JobsList = () => {
     setShowSuggestionsModal(prev => ({ ...prev, [jobId]: show }));
   };
 
-  // Helper to safely get googleJobId from a job object
-  function getGoogleJobId(job: unknown): string {
-    if (typeof job === 'object' && job !== null && 'jobId' in job && typeof (job as { jobId?: string }).jobId === 'string') {
-      return (job as { jobId: string }).jobId;
-    }
-    return '';
+  // Helper to robustly get googleJobId from a job object
+  function getGoogleJobId(job: any): string {
+    return job?.googleJobId || job?.jobId || job?.id || '';
   }
 
-  // Handler for Auto-Fix
-  const handleAutoFix = async (jobId: string, suggestion: Suggestion) => {
-    setPerJobIsApplying(prev => ({ ...prev, [jobId]: true }));
-    const jobSeekerId = getJobSeekerId();
-    if (!jobSeekerId) {
-      setPerJobIsApplying(prev => ({ ...prev, [jobId]: false }));
-      return;
-    }
-    const resumeText = perJobResumeText[jobId] || '';
-    // Find the job in jobs array to get googleJobId
-    const jobObj = jobs.find(j => j.id === jobId);
-    const googleJobId = getGoogleJobId(jobObj);
-    const payload = {
-      action: 'apply_suggestion',
-      resumeText,
-      googleJobId,
-      jobSeekerId,
-      suggestion: suggestion.description,
-      resumeId: resumeId || undefined,
-    };
-    try {
-      const res = await fetch('http://localhost:8080/api/resume-analysis/auto-improve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      setPerJobResumeText(prev => ({ ...prev, [jobId]: data.resumeText }));
-      setPerJobMatch(prev => ({ ...prev, [jobId]: data.matchPercentage }));
-      setPerJobSuggestions(prev => ({ ...prev, [jobId]: parseSuggestions(data.suggestions) }));
-      setPerJobCanDownload(prev => ({ ...prev, [jobId]: !!data.canDownload && data.matchPercentage === 100 }));
-      setAppliedSuggestions(prev => ({ ...prev, [jobId]: data.appliedSuggestions || [] }));
-      const jobMatchesStored = localStorage.getItem('resumeJobMatches');
-      if (jobMatchesStored) {
-        let jobMatches: JobMatch[] = JSON.parse(jobMatchesStored);
-        jobMatches = jobMatches.map((jm: JobMatch) =>
-          jm.jobId === jobId || jm.googleJobId === googleJobId
-            ? { ...jm, matchPercentage: data.matchPercentage, aiSuggestions: data.suggestions, appliedSuggestions: data.appliedSuggestions }
-            : jm
-        );
-        localStorage.setItem('resumeJobMatches', JSON.stringify(jobMatches));
-      }
-      if (data.resumeId) {
-        setResumeId(data.resumeId);
-        localStorage.setItem('resumeId', data.resumeId);
-      }
-    } catch { /* ignore error */ }
-    setPerJobIsApplying(prev => ({ ...prev, [jobId]: false }));
-  };
 
-  // Download handler
-  const handleDownload = (jobId: string) => {
-    const text = perJobResumeText[jobId] || '';
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'AI-Optimized-Resume.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
+// Download handler (context-based)
+const handleDownload = async (jobId: string) => {
+  // Use the latest improved resume text from localStorage or modalState
+  let text = '';
+  if (modalState[jobId]?.resumeText) {
+    text = modalState[jobId].resumeText;
+  } else {
+    text = localStorage.getItem('resumeText') || resumeAnalysisData?.resumeText || '';
+  }
+  // Split text into paragraphs for Word
+  const paragraphs = text.split('\n').map(line => new Paragraph(line));
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: paragraphs,
+      },
+    ],
+  });
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, 'Resume.docx');
+};
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -939,25 +825,26 @@ const JobsList = () => {
           {/* Jobs List */}
           <div className="space-y-4">
             {sortedJobs.map((job) => {
+              // Prefer match info from resumeAnalysisData context
               const googleJobId = getGoogleJobId(job);
-              const jobMatch = jobMatches.find((m) => m.jobId === job.id || (m.googleJobId && m.googleJobId === googleJobId));
-              const aiSuggestions = jobMatch?.aiSuggestions;
+              const contextMatch = resumeAnalysisData?.jobMatches?.find(
+                m => m.googleJobId === job.jobId
+              );
+
               const companyName = job.companyName || 'Unknown Company';
               const jobTitle = job.title || 'Unknown Position';
-              
-              // Debug logging
-              console.log('Job:', job.id, 'JobMatch:', jobMatch, 'aiSuggestions:', aiSuggestions);
-              
-              // If we have aiSuggestions but no parsed suggestions, populate perJobSuggestions
-              if (aiSuggestions && (!perJobSuggestions[job.id] || perJobSuggestions[job.id].length === 0)) {
-                const parsedSuggestions = parseSuggestions(aiSuggestions);
-                if (parsedSuggestions.length > 0) {
-                  setPerJobSuggestions(prev => ({ ...prev, [job.id]: parsedSuggestions }));
-                }
-              }
-              
+
+               // Debug: Log job and match IDs and matchPercentage
+               console.log('JobList Debug:', job.jobId, contextMatch?.googleJobId, contextMatch?.matchPercentage);
+
+               // Debug: Log all googleJobIds and a sample job object
+               if (sortedJobs.indexOf(job) === 0) {
+                 console.log('All googleJobIds:', resumeAnalysisData?.jobMatches?.map(m => m.googleJobId));
+                 console.log('Sample job:', job);
+               }
+
               return (
-                <Card key={job.id} className="hover:shadow-md transition-shadow">
+                <Card key={job.jobId || job.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -971,7 +858,7 @@ const JobsList = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <Link 
-                                to={`/google-jobs/${job.id}`}
+                                to={`/google-jobs/${job.jobId || job.id}`}
                                 className="text-xl font-semibold hover:text-blue-600 transition-colors"
                               >
                                 {jobTitle}
@@ -980,6 +867,20 @@ const JobsList = () => {
                             </div>
                             
                             <p className="text-gray-600 mb-2">{companyName}</p>
+                            {/* Match Information Section */}
+                            
+                              {/* <div className="mt-3 p-3 bg-gray-50 rounded-lg border"> */}
+                                {/* <div className="flex items-center justify-between mb-2">
+                                  <span className="font-semibold text-sm">Resume Match</span>
+                                  <span className={`font-bold text-lg ${getMatchColor(contextMatch.matchPercentage)}`}>
+                                    {contextMatch.matchPercentage}% match
+                                  </span>
+                                    <p className="text-blue-700 text-xs mt-1">{contextMatch.aiSuggestions}</p>
+                                  </div>
+                                )} */}
+                              
+                            
+                            
                             
                             <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                               {job.location && (
@@ -996,6 +897,8 @@ const JobsList = () => {
                                 <span className="font-medium">{job.salary}</span>
                               )}
                             </div>
+
+
 
                             {/* Skills/Tags */}
                             <div className="flex flex-wrap gap-2 mb-4">
@@ -1021,11 +924,40 @@ const JobsList = () => {
                               <span>•</span>
                               <span>Via {job.via || 'LinkedIn'}</span>
                             </div>
+
+                            {/* Resume Match Section (context only) */}
+                            {/* <div className="flex flex-col mt-4">
+                              <div className="flex items-center gap-2">
+                                {[...Array(5)].map((_, i) => {
+                                  const match = contextMatch?.matchPercentage;
+                                  return (
+                                    <Star
+                                      key={i}
+                                      className={`h-4 w-4 ${typeof match === 'number' && i < Math.floor(match / 20)
+                                        ? 'fill-yellow-400 text-yellow-400'
+                                        : 'text-gray-300'
+                                      }`}
+                                    />
+                                  );
+                                })}
+                                <span className="text-sm font-medium">
+                                  {typeof contextMatch?.matchPercentage === 'number'
+                                    ? `${contextMatch.matchPercentage}% Match`
+                                    : 'N/A'}
+                                </span>
+                              </div>
+                              {contextMatch?.aiSuggestions && (
+                                <div className="text-xs text-blue-700 mt-1">
+                                  <strong>AI Suggestions:</strong> {contextMatch.aiSuggestions}
+                                </div>
+                              )}
+                            </div> */}
+
                             {/* View Suggestions Button */}
                             <Button
                               size="sm"
                               className="mt-2"
-                              onClick={() => handleShowSuggestions(job.id, true)}
+                              onClick={() => handleShowSuggestions(job.jobId || job.id, true)}
                             >
                               View Suggestions
                             </Button>
@@ -1035,24 +967,30 @@ const JobsList = () => {
 
                       <div className="flex flex-col items-end gap-3 ml-4">
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
+                          {[...Array(5)].map((_, i) => {
+                            const match = typeof (modalState[job.jobId || job.id]?.matchPercentage) === 'number'
+                              ? modalState[job.jobId || job.id].matchPercentage
+                              : contextMatch?.matchPercentage;
+                            return (
                               <Star
                                 key={i}
-                                className={`h-4 w-4 ${
-                                  i < Math.floor(getMatchPercentage(job.id, googleJobId) / 20)
-                                    ? 'fill-yellow-400 text-yellow-400'
-                                    : 'text-gray-300'
+                                className={`h-5 w-5 ${typeof match === 'number' && i < Math.floor(match / 20)
+                                  ? 'fill-yellow-400 text-yellow-400'
+                                  : 'text-gray-300'
                                 }`}
                               />
-                            ))}
-                          </div>
-                          <span className="text-sm font-medium">{getMatchPercentage(job.id, googleJobId)}% Match</span>
+                            );
+                          })}
+                          <span className="text-lg font-medium">
+                            {typeof (modalState[job.jobId || job.id]?.matchPercentage) === 'number'
+                              ? `${modalState[job.jobId || job.id].matchPercentage}% Match`
+                              : (typeof contextMatch?.matchPercentage === 'number' ? `${contextMatch.matchPercentage}% Match` : 'N/A')}
+                          </span>
                         </div>
                         
                         <Button 
                           className="bg-blue-600 hover:bg-blue-700"
-                          onClick={(e) => handleApplyNow(job.id, e)}
+                          onClick={(e) => handleApplyNow(job.jobId || job.id, e)}
                         >
                           View Details
                         </Button>
@@ -1060,99 +998,167 @@ const JobsList = () => {
                     </div>
                   </CardContent>
                   {/* Suggestions Modal */}
-                  {showSuggestionsModal[job.id] && (
+                  {showSuggestionsModal[job.jobId || job.id] && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
                       <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
                         <button
                           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
-                          onClick={() => handleShowSuggestions(job.id, false)}
+                          onClick={() => handleShowSuggestions(job.jobId || job.id, false)}
                           aria-label="Close"
                         >
                           ×
                         </button>
                         
-                        {/* Header Section */}
-                        <div className="mb-8">
+                        
+                        {/* <div className="mb-8">
                           <h2 className="text-2xl font-bold mb-2">AI Suggestions for {jobTitle} at {companyName}</h2>
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
+                            {[...Array(5)].map((_, i) => {
+                              const match = contextMatch?.matchPercentage;
+                              return (
                                 <Star
                                   key={i}
-                                  className={`h-5 w-5 ${
-                                    i < Math.floor(getMatchPercentage(job.id, googleJobId) / 20)
-                                      ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-gray-300'
+                                  className={`h-5 w-5 ${typeof match === 'number' && i < Math.floor(match / 20)
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300'
                                   }`}
                                 />
-                              ))}
-                            </div>
-                            <span className="text-lg font-medium">{getMatchPercentage(job.id, googleJobId)}% Match</span>
+                              );
+                            })}
+                            <span className="text-lg font-medium">
+                              {typeof contextMatch?.matchPercentage === 'number'
+                                ? `${contextMatch.matchPercentage}% Match`
+                                : 'N/A'}
+                            </span>
                           </div>
-                        </div>
+                        </div> */}
 
-                        {/* Suggestions Section */}
+<div className="mb-8">
+  <h2 className="text-2xl font-bold mb-2">
+    AI Suggestions for {jobTitle} at {companyName}
+  </h2>
+  <div className="flex items-center gap-4">
+    {[...Array(5)].map((_, i) => {
+      const match =
+        typeof modalState[job.jobId || job.id]?.matchPercentage === 'number'
+          ? modalState[job.jobId || job.id].matchPercentage
+          : contextMatch?.matchPercentage;
+      return (
+        <Star
+          key={i}
+          className={`h-5 w-5 ${
+            typeof match === 'number' && i < Math.floor(match / 20)
+              ? 'fill-yellow-400 text-yellow-400'
+              : 'text-gray-300'
+          }`}
+        />
+      );
+    })}
+    <span className="text-lg font-medium">
+      {typeof modalState[job.jobId || job.id]?.matchPercentage === 'number'
+        ? `${modalState[job.jobId || job.id].matchPercentage}% Match`
+        : typeof contextMatch?.matchPercentage === 'number'
+        ? `${contextMatch.matchPercentage}% Match`
+        : 'N/A'}
+    </span>
+  </div>
+</div>
+
                         <div className="space-y-6">
                           <h3 className="text-xl font-semibold mb-4">Improvements Available</h3>
-                          
-                          {perJobSuggestions[job.id]?.length === 0 ? (
-                            aiSuggestions ? (
-                              <div className="prose text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto bg-gray-50 p-6 rounded-lg">
-                                <h4 className="text-lg font-semibold mb-3">Raw AI Suggestions:</h4>
-                                {aiSuggestions}
-                              </div>
-                            ) : (
-                              <div className="text-gray-500 text-center py-8">No suggestions available.</div>
-                            )
-                          ) : (
-                            <div className="space-y-4">
-                              {perJobSuggestions[job.id]?.map((sugg, idx) => (
-                                <div key={idx} className={`border rounded-lg p-6 border-l-4 border-${sugg.color}-400 bg-${sugg.color}-50`}>
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold text-lg">{sugg.title}</span>
-                                        <span className="bg-white border rounded-full px-3 py-1 text-sm font-medium text-gray-600">
-                                          +{sugg.points} points
-                                        </span>
-                                      </div>
-                                      <div className="text-gray-700 mb-3">{sugg.description}</div>
-                                      <div className="text-sm text-gray-500">
-                                        <span className="font-semibold">Auto-fix:</span> {sugg.autofix}
-                                      </div>
-                                    </div>
-                                    <Button
-                                      className="ml-4"
-                                      disabled={perJobIsApplying[job.id]}
-                                      onClick={() => handleAutoFix(job.id, sugg)}
-                                    >
-                                      {perJobIsApplying[job.id] ? "Applying..." : "Auto-fix"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
+                          {contextMatch?.aiSuggestions && (
+                            <div className="prose text-gray-700 max-h-96 overflow-y-auto bg-gray-50 p-6 rounded-lg">
+                              <h4 className="text-lg font-semibold mb-3">Raw AI Suggestions:</h4>
+                              <ul className="list-disc pl-6 space-y-2">
+  {(
+    (typeof modalState[job.jobId || job.id]?.suggestions === 'string'
+      ? modalState[job.jobId || job.id]?.suggestions
+      : contextMatch.aiSuggestions || '')
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('**') && !s.endsWith(':'))
+  ).map((suggestion, idx) => (
+    <li key={idx} className="flex items-center justify-between gap-4">
+      <span>{suggestion}</span>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+  // Store original resume before first auto-fix
+  if (!localStorage.getItem('originalResumeText')) {
+    localStorage.setItem('originalResumeText', modalState[job.jobId || job.id]?.resumeText || resumeText);
+  }
+  handleAutoFix({
+    suggestion,
+    resumeText: modalState[job.jobId || job.id]?.resumeText || resumeText,
+    googleJobId: job.googleJobId || job.id,
+    jobSeekerId,
+    contextMatch,
+    updateContextMatch: ({ suggestions, matchPercentage, resumeText }) => {
+      setModalState(prev => ({
+        ...prev,
+        [job.jobId || job.id]: {
+          suggestions,
+          matchPercentage,
+          resumeText,
+        }
+      }));
+      setResumeText(resumeText);
+      localStorage.setItem('resumeText', resumeText);
+    }
+  });
+}}
+        disabled={modalState[job.jobId || job.id]?.matchPercentage === 100}
+      >
+        Auto Fix
+      </Button>
+    </li>
+  ))}
+</ul>
                             </div>
                           )}
                         </div>
 
-                        {/* Footer Section */}
+                        
                         <div className="mt-8 pt-6 border-t">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                              {perJobMatch[job.id] === 100 && perJobCanDownload[job.id] && (
-                                <Button onClick={() => handleDownload(job.id)}>Download AI-Optimized Resume</Button>
-                              )}
-                              {appliedSuggestions[job.id] && appliedSuggestions[job.id]?.length > 0 && (
-                                <div className="text-sm text-green-700">
-                                  Applied: {appliedSuggestions[job.id]?.join(', ')}
-                                </div>
+                              {contextMatch?.matchPercentage === 100 && (
+                                <Button onClick={() => handleDownload(job.jobId || job.id)}>Download AI-Optimized Resume</Button>
                               )}
                             </div>
-                            <Button variant="outline" onClick={() => handleShowSuggestions(job.id, false)}>
+                            <Button variant="outline" onClick={() => handleShowSuggestions(job.jobId || job.id, false)}>
                               Close
                             </Button>
                           </div>
-                        </div>
+                        <div className="flex justify-between mt-4">
+  <Button
+    variant="outline"
+    onClick={() => {
+      const original = localStorage.getItem('originalResumeText');
+      if (original) {
+        setResumeText(original);
+        setModalState(prev => ({
+          ...prev,
+          [job.jobId || job.id]: {
+            suggestions: contextMatch.aiSuggestions || '',
+            matchPercentage: contextMatch.matchPercentage,
+            resumeText: original,
+          },
+        }));
+        localStorage.setItem('resumeText', original);
+      }
+    }}
+    disabled={!localStorage.getItem('originalResumeText')}
+  >
+    Revert to Original Resume
+  </Button>
+</div>
+{/*
+  Context Sharing: Use ResumeContext to share improved resume/suggestions across components.
+  Editor Value Update: Use setEditorValue(improvedResume) where you're editing the resume.
+*/}
+</div>
                       </div>
                     </div>
                   )}
@@ -1250,3 +1256,4 @@ const JobsList = () => {
 };
 
 export default JobsList;
+

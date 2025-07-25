@@ -15,7 +15,8 @@ interface ExperienceTabProps {
   onNextTab?: () => void;
 }
 
-export const ExperienceTab = ({ jobSeekerId, onNextTab }: ExperienceTabProps) => {
+export const ExperienceTab = ({ onNextTab }: ExperienceTabProps) => {
+  const [jobSeekerId, setJobSeekerId] = useState<string | null>(null);
   const [experiences, setExperiences] = useState<JobSeekerExperience[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExperience, setEditingExperience] = useState<JobSeekerExperience | null>(null);
@@ -30,30 +31,50 @@ export const ExperienceTab = ({ jobSeekerId, onNextTab }: ExperienceTabProps) =>
   const { toast } = useToast();
 
   useEffect(() => {
+    // Always fetch latest jobSeekerId from backend
+    const fetchJobSeekerId = async () => {
+      let latestJobSeekerId = null;
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const res = await fetch('http://localhost:8080/api/job-seekers/me/id', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            latestJobSeekerId = await res.text();
+          }
+        }
+      } catch {}
+      if (latestJobSeekerId) setJobSeekerId(latestJobSeekerId);
+    };
+    fetchJobSeekerId();
+  }, []);
+
+  useEffect(() => {
     if (jobSeekerId) {
       fetchExperiences();
     }
   }, [jobSeekerId]);
 
   const fetchExperiences = async () => {
+    if (!jobSeekerId) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/job-seeker-experiences?jobSeekerId=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-experiences/by-jobseeker?jobSeekerId=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setExperiences(data.map((exp: any) => ({
-          id: exp.id,
-          jobSeekerId: exp.jobSeekerId,
-          jobTitle: exp.jobTitle,
-          companyName: exp.companyName,
-          startDate: exp.startDate,
-          endDate: exp.endDate,
-          responsibilities: exp.responsibilities,
-        })));
-      }
+      if (!response.ok) throw new Error('Failed to fetch experiences');
+      const data = await response.json();
+      setExperiences(data.map((exp: any) => ({
+        id: exp.id,
+        jobSeekerId: exp.jobSeekerId,
+        jobTitle: exp.jobTitle,
+        companyName: exp.companyName,
+        startDate: exp.startDate,
+        endDate: exp.endDate,
+        responsibilities: exp.responsibilities,
+      })));
     } catch (error) {
       console.error('Failed to fetch experiences:', error);
     }

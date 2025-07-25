@@ -31,16 +31,16 @@ export const CertificationsTab = ({ jobSeekerId, onNextTab }: CertificationsTabP
   }, [jobSeekerId]);
 
   const fetchCertifications = async () => {
+    if (!jobSeekerId) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/job-seeker-certifications?jobSeekerId=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-certifications/job-seeker/${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setCertifications(data);
-      }
+      if (!response.ok) throw new Error('Failed to fetch certifications');
+      const data = await response.json();
+      setCertifications(data);
     } catch (error) {
       console.error('Failed to fetch certifications:', error);
     }

@@ -9,12 +9,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { jobSeekerService, JobSeekerData } from '@/services/jobSeekerService';
 
 interface ProfileTabProps {
-  profile: JobSeeker | null;
   onUpdate: (profile: JobSeeker) => void;
   onNextTab?: () => void;
 }
 
-export const ProfileTab = ({ profile, onUpdate, onNextTab }: ProfileTabProps) => {
+
+
+export const ProfileTab = ({ onUpdate, onNextTab }: ProfileTabProps) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<JobSeekerData | null>(null);
+  const [jobSeekerId, setJobSeekerId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -24,21 +29,54 @@ export const ProfileTab = ({ profile, onUpdate, onNextTab }: ProfileTabProps) =>
     preferredJobTypes: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
 
+  // Fetch the jobseeker profile for the authenticated user
   useEffect(() => {
-    if (profile) {
-      setFormData({
-        firstName: profile.user?.firstName || '',
-        lastName: profile.user?.lastName || '',
-        location: profile.location || '',
-        phone: profile.phone || '',
-        desiredSalary: profile.desiredSalary || '',
-        preferredJobTypes: profile.preferredJobTypes || '',
-      });
-    }
-  }, [profile]);
+    const fetchProfile = async () => {
+      // Always fetch jobSeekerId from /api/job-seekers/me/id for the current user
+      let latestJobSeekerId = user?.jobSeekerId;
+      if (!latestJobSeekerId) {
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const res = await fetch('http://localhost:8080/api/job-seekers/me/id', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              latestJobSeekerId = await res.text();
+            }
+          }
+        } catch {}
+      }
+      if (!latestJobSeekerId) return;
+      setJobSeekerId(latestJobSeekerId);
+      try {
+        const js = await jobSeekerService.getById(latestJobSeekerId);
+        setProfile(js);
+        setFormData({
+          firstName: js.firstName || user.firstName || '',
+          lastName: js.lastName || user.lastName || '',
+          location: js.location || '',
+          phone: js.phone || '',
+          desiredSalary: js.desiredSalary || '',
+          preferredJobTypes: js.preferredJobTypes || '',
+        });
+      } catch {
+        setProfile(null);
+        setFormData({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          location: '',
+          phone: '',
+          desiredSalary: '',
+          preferredJobTypes: '',
+        });
+      }
+    };
+    fetchProfile();
+  }, [user]);
+// Removed duplicate state and hook declarations below. All state and hooks are now declared only once at the top.
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,27 +86,26 @@ export const ProfileTab = ({ profile, onUpdate, onNextTab }: ProfileTabProps) =>
 
     try {
       let updatedProfile: JobSeekerData;
-      
-      if (profile) {
-        updatedProfile = await jobSeekerService.update(profile.id, {
-          firstName: user.firstName,
-          lastName: user.lastName,
+      if (jobSeekerId && profile) {
+        updatedProfile = await jobSeekerService.update(jobSeekerId, {
+          id: jobSeekerId,
+          userId: profile.userId,
+          firstName: formData.firstName || profile.firstName,
+          lastName: formData.lastName || profile.lastName,
           location: formData.location,
           phone: formData.phone,
           desiredSalary: formData.desiredSalary,
           preferredJobTypes: formData.preferredJobTypes,
         });
       } else {
-        updatedProfile = await jobSeekerService.create({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          location: formData.location,
-          phone: formData.phone,
-          desiredSalary: formData.desiredSalary,
-          preferredJobTypes: formData.preferredJobTypes,
+        toast({
+          title: "Error",
+          description: "Profile not found. Cannot update.",
+          variant: "destructive",
         });
+        setIsLoading(false);
+        return;
       }
-      
       // Convert JobSeekerData to JobSeeker for the callback
       const jobSeekerForCallback: JobSeeker = {
         id: updatedProfile.id || '',
@@ -80,7 +117,7 @@ export const ProfileTab = ({ profile, onUpdate, onNextTab }: ProfileTabProps) =>
         desiredSalary: updatedProfile.desiredSalary,
         preferredJobTypes: updatedProfile.preferredJobTypes,
       };
-      
+      setProfile(updatedProfile);
       onUpdate(jobSeekerForCallback);
       toast({
         title: "Success",

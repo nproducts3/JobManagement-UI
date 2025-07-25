@@ -11,15 +11,42 @@ import { skillsService, SkillData } from '@/services/skillsService';
 import { JobSeekerSkill } from '@/types/api';
 
 interface SkillsTabProps {
-  jobSeekerId?: string;
+  jobSeekerId: string;
   onNextTab?: () => void;
 }
 
-export const SkillsTab = ({ jobSeekerId, onNextTab }: SkillsTabProps) => {
+import { useAuth } from '@/contexts/AuthContext';
+export const SkillsTab = ({ onNextTab }: SkillsTabProps) => {
+  const { user } = useAuth();
+  const [jobSeekerId, setJobSeekerId] = useState<string | null>(null);
   const [skills, setSkills] = useState<JobSeekerSkill[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Always fetch latest jobSeekerId from backend
+    const fetchJobSeekerId = async () => {
+      let latestJobSeekerId = user?.jobSeekerId;
+      if (!latestJobSeekerId) {
+        try {
+          const token = localStorage.getItem('token');
+          if (token) {
+            const res = await fetch('http://localhost:8080/api/job-seekers/me/id', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              latestJobSeekerId = await res.text();
+            }
+          }
+        } catch {}
+      }
+      if (latestJobSeekerId) {
+        setJobSeekerId(latestJobSeekerId);
+      }
+    };
+    fetchJobSeekerId();
+  }, [user]);
 
   useEffect(() => {
     if (jobSeekerId) {
@@ -28,8 +55,15 @@ export const SkillsTab = ({ jobSeekerId, onNextTab }: SkillsTabProps) => {
   }, [jobSeekerId]);
 
   const fetchSkills = async () => {
+    if (!jobSeekerId) return;
     try {
-      const data: SkillData[] = await skillsService.getByJobSeekerId(jobSeekerId!);
+      const response = await fetch(`http://localhost:8080/api/job-seeker-skills/by-jobseeker?jobSeekerId=${jobSeekerId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch skills');
+      const data: SkillData[] = await response.json();
       setSkills(data.map(s => ({
         id: s.id || '',
         jobSeekerId: s.jobSeekerId,

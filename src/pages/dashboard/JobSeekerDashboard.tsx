@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { JobSeeker } from '@/types/api';
 import { jobSeekerService } from '@/services/jobSeekerService';
 
+import { ResumeAnalysisProvider } from '@/contexts/ResumeAnalysisContext';
+
 const JobSeekerDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -58,7 +60,8 @@ const JobSeekerDashboard = () => {
 
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ResumeAnalysisProvider>
+      <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -136,7 +139,7 @@ const JobSeekerDashboard = () => {
           </TabsList>
 
           <TabsContent value="profile">
-            <ProfileTab profile={profile} onUpdate={setProfile} onNextTab={() => setActiveTab('skills')} />
+            <ProfileTab onUpdate={setProfile} onNextTab={() => setActiveTab('skills')} />
           </TabsContent>
 
           <TabsContent value="skills">
@@ -161,6 +164,7 @@ const JobSeekerDashboard = () => {
         </Tabs>
       </div>
     </div>
+    </ResumeAnalysisProvider>
   );
 };
 

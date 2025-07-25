@@ -8,6 +8,7 @@ import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import JobsList from "./pages/JobsList";
+import { ResumeAnalysisProvider } from "@/contexts/ResumeAnalysisContext";
 import JobDetails from "./pages/JobDetails";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -41,7 +42,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/set-password" element={<SetPassword />} />
             <Route path="/create-user" element={<Layout><CreateUser /></Layout>} />
-            <Route path="/google-jobs" element={<Layout><JobsList /></Layout>} />
+            <Route path="/google-jobs" element={<Layout><ResumeAnalysisProvider><JobsList /></ResumeAnalysisProvider></Layout>} />
             <Route path="/google-jobs/:id" element={<Layout><JobDetails /></Layout>} />
             <Route path="/dashboard" element={<Layout><JobSeekerDashboard /></Layout>} />
             <Route path="/employer-dashboard" element={<Layout><EmployerDashboard /></Layout>} />

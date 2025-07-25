@@ -1,4 +1,5 @@
 export interface User {
+  jobSeekerId?: string; // Canonical jobseeker id for this user
   id: string;
   username: string;
   email: string;

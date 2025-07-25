@@ -14,7 +14,8 @@ interface EducationTabProps {
   onNextTab?: () => void;
 }
 
-export const EducationTab = ({ jobSeekerId, onNextTab }: EducationTabProps) => {
+export const EducationTab = ({ onNextTab }: EducationTabProps) => {
+  const [jobSeekerId, setJobSeekerId] = useState<string | null>(null);
   const [educations, setEducations] = useState<JobSeekerEducation[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEducation, setEditingEducation] = useState<JobSeekerEducation | null>(null);
@@ -27,22 +28,42 @@ export const EducationTab = ({ jobSeekerId, onNextTab }: EducationTabProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Always fetch latest jobSeekerId from backend
+    const fetchJobSeekerId = async () => {
+      let latestJobSeekerId = null;
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const res = await fetch('http://localhost:8080/api/job-seekers/me/id', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            latestJobSeekerId = await res.text();
+          }
+        }
+      } catch {}
+      if (latestJobSeekerId) setJobSeekerId(latestJobSeekerId);
+    };
+    fetchJobSeekerId();
+  }, []);
+
+  useEffect(() => {
     if (jobSeekerId) {
       fetchEducations();
     }
   }, [jobSeekerId]);
 
   const fetchEducations = async () => {
+    if (!jobSeekerId) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/job-seeker-educations?job_seeker_id=${jobSeekerId}`, {
+      const response = await fetch(`http://localhost:8080/api/job-seeker-educations/by-jobseeker?jobSeekerId=${jobSeekerId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setEducations(data);
-      }
+      if (!response.ok) throw new Error('Failed to fetch educations');
+      const data = await response.json();
+      setEducations(data);
     } catch (error) {
       console.error('Failed to fetch educations:', error);
     }

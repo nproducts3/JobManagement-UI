@@ -74,6 +74,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [token]);
 
   const fetchUserData = async () => {
+  // Helper to fetch jobSeekerId for a userId
+  const fetchJobSeekerId = async (userId: string, token: string) => {
+    const response = await fetch(`http://localhost:8080/api/job-seekers/by-user/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) return null;
+    const jobSeeker = await response.json();
+    return jobSeeker?.id || null;
+  };
     try {
       // Get userId from localStorage
       const userId = localStorage.getItem('userId');
@@ -91,7 +100,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
+        // Fetch jobSeekerId for this user
+        const jobSeekerId = await fetchJobSeekerId(userId, token!);
+        setUser({ ...userData, jobSeekerId });
 
         // PATCH: Handle role as string, object, or missing
         if (typeof userData.role === 'object' && userData.role?.roleName) {
@@ -138,42 +149,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const response = await fetch('http://localhost:8080/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
-      const { token: authToken, id, email: userEmail, role } = data;
-      const roleName = typeof role === 'object' && role.roleName ? role.roleName : role;
-      console.log('Login role:', role, 'Resolved roleName:', roleName);
-      localStorage.setItem('token', authToken);
-      setToken(authToken);
-      // Store userId in localStorage for later use
-      localStorage.setItem('userId', id);
-      // --- SET SESSION EXPIRATION ---
-      const oneHour = 60 * 60 * 1000;
-      const expiresAt = Date.now() + oneHour;
-      localStorage.setItem("expiresAt", expiresAt.toString());
-      // --- END SESSION EXPIRATION ---
-      // Set user and role in context (minimal, will be replaced by fetchUserData)
-      setUser({ id, email: userEmail, roleId: roleName } as any);
-      setRole({ id: roleName, roleName: roleName } as any);
-      // Redirect based on role
-      const redirectPath = getDashboardPath(roleName);
-      return { redirectPath };
-    } catch (error) {
-      throw new Error('Invalid credentials.');
+    if (!response.ok) {
+      throw new Error('Login failed');
     }
-  };
+
+    const data = await response.json();
+    const { token: authToken, id, email: userEmail, role } = data;
+    const roleName = typeof role === 'object' && role.roleName ? role.roleName : role;
+    console.log('Login role:', role, 'Resolved roleName:', roleName);
+    localStorage.setItem('token', authToken);
+    setToken(authToken);
+    // Store userId in localStorage for later use
+    localStorage.setItem('userId', id);
+    // --- SET SESSION EXPIRATION ---
+    const oneHour = 60 * 60 * 1000;
+    const expiresAt = Date.now() + oneHour;
+    localStorage.setItem("expiresAt", expiresAt.toString());
+    // --- END SESSION EXPIRATION ---
+    // Fetch jobSeekerId after login
+    let jobSeekerId: string | null = null;
+    try {
+      const jobSeekerIdResponse = await fetch('http://localhost:8080/api/job-seekers/me/id', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (jobSeekerIdResponse.ok) {
+        jobSeekerId = await jobSeekerIdResponse.text();
+      }
+    } catch (e) {
+      // Ignore error, jobSeekerId stays null
+    }
+
+    setUser({ id, email: userEmail, roleId: roleName, jobSeekerId } as any);
+    setRole({ id: roleName, roleName: roleName } as any);
+    // Redirect based on role
+    const redirectPath = getDashboardPath(roleName);
+    return { redirectPath };
+  } catch (error) {
+    throw new Error('Invalid credentials.');
+  }
+};
 
   const register = async (userData: RegisterData) => {
     const response = await fetch('http://localhost:8080/api/users', {
