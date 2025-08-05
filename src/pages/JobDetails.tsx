@@ -31,9 +31,9 @@ const JobDetails = () => {
     }
   }, [job]);
 
-  const fetchJobDetails = async (jobId: string) => {
+  const fetchJobDetails = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/google-jobs/${jobId}`);
+      const response = await fetch(`http://localhost:8080/api/google-jobs/${id}`);
       if (response.ok) {
         const data = await response.json();
         setJob(data);
@@ -42,7 +42,7 @@ const JobDetails = () => {
         const listResponse = await fetch('http://localhost:8080/api/google-jobs');
         if (listResponse.ok) {
           const jobs = await listResponse.json();
-          const foundJob = jobs.find((j: GoogleJob) => j.id === jobId);
+          const foundJob = jobs.find((j: GoogleJob) => j.id === id);
           if (foundJob) {
             setJob(foundJob);
           }

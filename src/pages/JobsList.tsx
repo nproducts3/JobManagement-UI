@@ -30,6 +30,7 @@ declare interface JobMatch {
   aiSuggestions?: string;
   matchedSkills?: string[];
   missingSkills?: string[];
+  jobTitle?: string;
 }
 
 const KNOWN_SKILLS = ['JavaScript', 'React', 'Python', 'AWS', 'Node.js', 'TypeScript'];
@@ -278,6 +279,7 @@ const [modalState, setModalState] = useState<Record<string, { suggestions: strin
             resumeFileName = parsed.filename;
           } catch { /* ignore error */ }
         }
+        if (!resumeFileName) return;
         // If resume file name is available, fetch the file from server or prompt user to upload again
         if (resumeFileName) {
           // NOTE: In a real app, you would fetch the file from the server or ask the user to re-upload
@@ -348,7 +350,7 @@ const [modalState, setModalState] = useState<Record<string, { suggestions: strin
     }
   };
 
-  const handleApplyNow = (jobId: string, e: React.MouseEvent) => {
+  const handleApplyNow = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated) {
@@ -356,12 +358,14 @@ const [modalState, setModalState] = useState<Record<string, { suggestions: strin
       return;
     }
     if (role?.roleName === 'ROLE_EMPLOYER') {
-      setPendingJobId(jobId);
+      setPendingJobId(id);
       setShowJobseekerDialog(true);
       if (jobseekers.length === 0) fetchJobseekers();
       return;
     }
-    navigate(`/google-jobs/${jobId}`);
+    navigate(`/google-jobs/${id}`);
+
+    console.log(id);
   };
 
   const handleJobseekerApply = () => {
@@ -507,6 +511,45 @@ const [modalState, setModalState] = useState<Record<string, { suggestions: strin
         return 0;
     }
   });
+
+  // --- PAGINATED RESUME ANALYSIS ---
+  const [paginatedMatches, setPaginatedMatches] = useState<JobMatch[]>([]);
+  const [paginatedLoading, setPaginatedLoading] = useState(false);
+  const [paginatedError, setPaginatedError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
+
+  const handlePaginatedAnalyze = async (pageNumber = page) => {
+    if (!jobSeekerId) return;
+    setPaginatedLoading(true);
+    setPaginatedError(null);
+    try {
+      const response = await resumeService.paginatedAnalyze(jobSeekerId, pageNumber, pageSize);
+      setPaginatedMatches(response.jobMatches || response.data || []);
+    } catch (err: any) {
+      setPaginatedError(err.message || 'Error fetching paginated analysis');
+    } finally {
+      setPaginatedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (jobSeekerId) {
+      setPage(0);
+      handlePaginatedAnalyze(0);
+    }
+  }, [jobSeekerId]);
+
+  const handlePrevPage = () => {
+    const newPage = Math.max(page - 1, 0);
+    setPage(newPage);
+    handlePaginatedAnalyze(newPage);
+  };
+  const handleNextPage = () => {
+    const newPage = page + 1;
+    setPage(newPage);
+    handlePaginatedAnalyze(newPage);
+  };
 
   if (isLoading) {
     return (
@@ -990,7 +1033,7 @@ const handleDownload = async (jobId: string) => {
                         
                         <Button 
                           className="bg-blue-600 hover:bg-blue-700"
-                          onClick={(e) => handleApplyNow(job.jobId || job.id, e)}
+                          onClick={(e) => handleApplyNow(job.id, e)}
                         >
                           View Details
                         </Button>
@@ -1091,7 +1134,7 @@ const handleDownload = async (jobId: string) => {
   handleAutoFix({
     suggestion,
     resumeText: modalState[job.jobId || job.id]?.resumeText || resumeText,
-    googleJobId: job.googleJobId || job.id,
+    googleJobId: job.id || job.id,
     jobSeekerId,
     contextMatch,
     updateContextMatch: ({ suggestions, matchPercentage, resumeText }) => {
@@ -1205,6 +1248,42 @@ const handleDownload = async (jobId: string) => {
             </div>
           )}
 
+          {/* Paginated Resume Analysis Results */}
+          {/* <div className="mt-8">
+            <h3 className="font-semibold mb-2">Paginated Job Analysis</h3>
+            {paginatedLoading ? (
+              <div className="text-blue-600">Loading paginated analysis...</div>
+            ) : paginatedError ? (
+              <div className="text-red-600">{paginatedError}</div>
+            ) : (
+              <div>
+                {paginatedMatches.map((job) => (
+                  <div key={job.googleJobId || job.jobId} className="border rounded p-4 mb-4">
+                    <h4 className="font-bold text-base mb-1">{job.jobTitle}</h4>
+                    <p className="mb-1">Match: <span className={getMatchColor(job.matchPercentage)}>{job.matchPercentage}%</span></p>
+                    <p className="mb-1">Matched Skills: {job.matchedSkills?.join(', ') || '-'}</p>
+                    <p className="mb-1">Missing Skills: {job.missingSkills?.join(', ') || '-'}</p>
+                    <div className="mb-1">
+                      <strong>Suggestions:</strong>
+                      <ul className="list-disc list-inside">
+                        {Array.isArray(job.aiSuggestions)
+                          ? job.aiSuggestions.map((suggestion: string, idx: number) => (
+                              <li key={idx}>{suggestion}</li>
+                            ))
+                          : <li>-</li>
+                        }
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-center gap-4 mt-4">
+                  <Button onClick={handlePrevPage} disabled={page === 0}>Previous</Button>
+                  <Button onClick={handleNextPage} disabled={paginatedMatches.length < pageSize}>Next</Button>
+                </div>
+              </div>
+            )}
+          </div> */}
+
           {sortedJobs.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">No jobs found matching your search.</p>
@@ -1244,7 +1323,7 @@ const handleDownload = async (jobId: string) => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
             <h2 className="text-lg font-bold mb-2">Gemini AI Suggestions</h2>
-            <div className="prose max-h-96 overflow-y-auto" dangerouslySetInnerHTML={{ __html: selectedSuggestions.replace(/\n/g, '<br/>') }} />
+            <div className="prose text-gray-700 max-h-96 overflow-y-auto" dangerouslySetInnerHTML={{ __html: selectedSuggestions.replace(/\n/g, '<br/>') }} />
             <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onClick={() => setSelectedSuggestions(null)}>
               Close
             </button>
@@ -1256,4 +1335,3 @@ const handleDownload = async (jobId: string) => {
 };
 
 export default JobsList;
-

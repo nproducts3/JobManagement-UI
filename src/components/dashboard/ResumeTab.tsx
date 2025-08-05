@@ -16,8 +16,6 @@ interface ResumeTabProps {
   jobSeekerId?: string;
 }
 
-
-
 interface ResumeAnalysisResponse {
   resumeId: string;
   resumeFile: string;
@@ -112,6 +110,8 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
       // Store resume info per user
       const key = `resumeInfo_${user?.id || jobSeekerId}`;
       localStorage.setItem(key, JSON.stringify({ filename: file.name, resumeId: analysis?.resumeId }));
+      // --- Trigger paginated analyze after upload ---
+      await handlePaginatedAnalyze();
     } catch (err: unknown) {
       setAnalysisError((err as Error).message || 'Failed to analyze resume');
     } finally {
@@ -119,6 +119,26 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
     }
   };
 
+  // --- PAGINATED ANALYZE INTEGRATION ---
+  const [paginatedMatches, setPaginatedMatches] = useState<JobMatch[]>([]);
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
+  const [paginatedLoading, setPaginatedLoading] = useState(false);
+  const [paginatedError, setPaginatedError] = useState<string | null>(null);
+
+  const handlePaginatedAnalyze = async () => {
+    if (!jobSeekerId) return;
+    setPaginatedLoading(true);
+    setPaginatedError(null);
+    try {
+      const response = await resumeService.paginatedAnalyze(jobSeekerId, page, pageSize);
+      setPaginatedMatches(response.jobMatches || response.data || []);
+    } catch (err: any) {
+      setPaginatedError(err.message || 'Error fetching paginated analysis');
+    } finally {
+      setPaginatedLoading(false);
+    }
+  };
 
   const handleCancelUpload = () => {
     setUploadedFile(null);
@@ -303,6 +323,48 @@ export const ResumeTab = ({ jobSeekerId }: ResumeTabProps) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Paginated Resume Analysis Results */}
+      <div className="mt-8">
+        <h3 className="font-semibold mb-2">Paginated Job Analysis</h3>
+        {paginatedLoading ? (
+          <div className="text-blue-600">Loading paginated analysis...</div>
+        ) : paginatedError ? (
+          <div className="text-red-600">{paginatedError}</div>
+        ) : (
+          <div>
+            {paginatedMatches.map((job) => (
+              <div key={job.googleJobId || job.jobId} className="border rounded p-4 mb-4">
+                <h4 className="font-bold text-base mb-1">{job.jobTitle}</h4>
+                <p className="mb-1">Match: <span className={getMatchColor(job.matchPercentage)}>{job.matchPercentage}%</span></p>
+                <p className="mb-1">Matched Skills: {job.matchedSkills?.join(', ') || '-'}</p>
+                <p className="mb-1">Missing Skills: {job.missingSkills?.join(', ') || '-'}</p>
+                <div className="mb-1">
+                  <strong>Suggestions:</strong>
+                  {/* <ul className="list-disc list-inside">
+                    {(job.aiSuggestions || []).map((suggestion: string, idx: number) => (
+                      <li key={idx}>{suggestion}</li>
+                    ))}
+                  </ul> */}
+
+<ul className="list-disc list-inside">
+  {Array.isArray(job.aiSuggestions)
+    ? job.aiSuggestions.map((suggestion: string, idx: number) => (
+        <li key={idx}>{suggestion}</li>
+      ))
+    : <li>-</li>
+  }
+</ul>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-center gap-4 mt-4">
+              <Button onClick={() => { setPage((prev) => Math.max(prev - 1, 0)); handlePaginatedAnalyze(); }} disabled={page === 0}>Previous</Button>
+              <Button onClick={() => { setPage((prev) => prev + 1); handlePaginatedAnalyze(); }} disabled={paginatedMatches.length < pageSize}>Next</Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ATS Tips */}
       <Card>

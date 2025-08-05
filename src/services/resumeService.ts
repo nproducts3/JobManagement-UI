@@ -1,4 +1,3 @@
-
 const BASE_URL = 'http://localhost:8080/api';
 
 export interface ResumeData {
@@ -69,5 +68,21 @@ export const resumeService = {
       resumeText: data.resumeText,
       aiSuggestions: data.aiSuggestions
     };
-  }
+  },
+
+  // Paginated analysis for jobs
+  paginatedAnalyze: async (jobSeekerId: string, page: number, size: number) => {
+    const res = await fetch(
+      `${BASE_URL}/resume-analysis/paginated-analyze?jobSeekerId=${encodeURIComponent(jobSeekerId)}&page=${page}&size=${size}`,
+      {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      }
+    );
+    if (!res.ok) throw new Error('Failed to fetch paginated analysis');
+    return await res.json();
+  },
 };
